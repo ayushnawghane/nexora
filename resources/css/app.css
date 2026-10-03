@@ -1,0 +1,276 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/inter';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views';
+@source '../js';
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/*
+ * Theme tokens. Values come from DESIGN.md §2; shadcn components read the shadcn variable names
+ * (--background, --primary, …), so every one of them is mapped to a DESIGN.md token here.
+ * Dark is the default theme; light is applied with [data-theme='light'] on <html>.
+ */
+:root,
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
+    /* DESIGN.md surfaces */
+    --surface-1: #121212;
+    --surface-2: #181818;
+    --surface-3: #202020;
+    --hover: #262626;
+    --border-strong: #3a3a3a;
+    --text-subtle: #6b6b6b;
+    --brand-glow: rgb(255 107 26 / 0.45);
+    --brand-text: #ff8a4c;
+
+    /* shadcn variables */
+    --background: #0a0a0a;
+    --foreground: #f5f5f5;
+    --card: #181818;
+    --card-foreground: #f5f5f5;
+    --popover: #181818;
+    --popover-foreground: #f5f5f5;
+    --primary: #ff6b1a;
+    --primary-foreground: #ffffff;
+    --secondary: #202020;
+    --secondary-foreground: #f5f5f5;
+    --muted: #202020;
+    --muted-foreground: #a3a3a3;
+    --accent: #262626;
+    --accent-foreground: #f5f5f5;
+    --destructive: #f87171;
+    --border: #1f1f1f;
+    --input: #2a2a2a;
+    --ring: #ff6b1a;
+    --chart-1: #ff6b1a;
+    --chart-2: #ffb088;
+    --chart-3: #ffd4bc;
+    --chart-4: #f5f5f5;
+    --chart-5: #6b6b6b;
+    --sidebar: #121212;
+    --sidebar-foreground: #a3a3a3;
+    --sidebar-primary: #ff6b1a;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #262626;
+    --sidebar-accent-foreground: #f5f5f5;
+    --sidebar-border: #1f1f1f;
+    --sidebar-ring: #ff6b1a;
+
+    /* Status pills (DESIGN.md §2.4) */
+    --success-bg: #0f2a17;
+    --success-border: #1f5a30;
+    --success-text: #4ade80;
+    --danger-bg: #2a1010;
+    --danger-border: #5a1f1f;
+    --danger-text: #f87171;
+    --warning-bg: #2a2610;
+    --warning-border: #5a521f;
+    --warning-text: #e5d36b;
+    --neutral-bg: #1f1f1f;
+    --neutral-border: #333333;
+    --neutral-text: #a3a3a3;
+    --delta-bg: #1e1a14;
+    --delta-border: #3d3020;
+    --delta-text: #e8c9a0;
+
+    --chart-bar-top: #2a2a2a;
+    --chart-bar-bottom: #1c1c1c;
+    --chart-grid: #1f1f1f;
+
+    --shadow-card-value: inset 0 1px 0 rgb(255 255 255 / 0.03);
+    --shadow-pop-value: 0 8px 24px rgb(0 0 0 / 0.5);
+}
+
+:root[data-theme='light'] {
+    color-scheme: light;
+
+    --surface-1: #ffffff;
+    --surface-2: #ffffff;
+    --surface-3: #f4f4f5;
+    --hover: #ededef;
+    --border-strong: #c9c9ce;
+    --text-subtle: #9a9aa0;
+    --brand-glow: rgb(255 107 26 / 0.25);
+    --brand-text: #c2410c;
+
+    --background: #f4f4f5;
+    --foreground: #111111;
+    --card: #ffffff;
+    --card-foreground: #111111;
+    --popover: #ffffff;
+    --popover-foreground: #111111;
+    --primary: #ff6b1a;
+    --primary-foreground: #ffffff;
+    --secondary: #f4f4f5;
+    --secondary-foreground: #111111;
+    --muted: #f4f4f5;
+    --muted-foreground: #5a5a60;
+    --accent: #ededef;
+    --accent-foreground: #111111;
+    --destructive: #b42318;
+    --border: #ececee;
+    --input: #e1e1e4;
+    --ring: #ff6b1a;
+    --chart-1: #ff6b1a;
+    --chart-2: #ffb088;
+    --chart-3: #ffd4bc;
+    --chart-4: #3f3f46;
+    --chart-5: #9a9aa0;
+    --sidebar: #ffffff;
+    --sidebar-foreground: #5a5a60;
+    --sidebar-primary: #ff6b1a;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #ededef;
+    --sidebar-accent-foreground: #111111;
+    --sidebar-border: #ececee;
+    --sidebar-ring: #ff6b1a;
+
+    --success-bg: #ecfdf3;
+    --success-border: #abefc6;
+    --success-text: #067647;
+    --danger-bg: #fef3f2;
+    --danger-border: #fecdca;
+    --danger-text: #b42318;
+    --warning-bg: #fefbe8;
+    --warning-border: #feee95;
+    --warning-text: #a15c07;
+    --neutral-bg: #f4f4f5;
+    --neutral-border: #e1e1e4;
+    --neutral-text: #5a5a60;
+    --delta-bg: #fff4ec;
+    --delta-border: #ffd9c2;
+    --delta-text: #c2410c;
+
+    --chart-bar-top: #e8e8eb;
+    --chart-bar-bottom: #f2f2f4;
+    --chart-grid: #ededef;
+
+    --shadow-card-value: 0 1px 2px rgb(16 16 20 / 0.04), 0 1px 3px rgb(16 16 20 / 0.06);
+    --shadow-pop-value: 0 8px 24px rgb(16 16 20 / 0.1);
+}
+
+@theme inline {
+    --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-heading: var(--font-sans);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    /* DESIGN.md extras */
+    --color-surface-1: var(--surface-1);
+    --color-surface-2: var(--surface-2);
+    --color-surface-3: var(--surface-3);
+    --color-hover: var(--hover);
+    --color-border-strong: var(--border-strong);
+    --color-subtle-foreground: var(--text-subtle);
+    --color-brand-text: var(--brand-text);
+    --color-brand-200: #ffd4bc;
+    --color-brand-300: #ffb088;
+    --color-brand-400: #ff8a4c;
+    --color-brand-500: #ff6b1a;
+    --color-brand-600: #e85a0c;
+
+    --color-success-bg: var(--success-bg);
+    --color-success-border: var(--success-border);
+    --color-success: var(--success-text);
+    --color-danger-bg: var(--danger-bg);
+    --color-danger-border: var(--danger-border);
+    --color-danger: var(--danger-text);
+    --color-warning-bg: var(--warning-bg);
+    --color-warning-border: var(--warning-border);
+    --color-warning: var(--warning-text);
+    --color-neutral-bg: var(--neutral-bg);
+    --color-neutral-border: var(--neutral-border);
+    --color-neutral: var(--neutral-text);
+    --color-delta-bg: var(--delta-bg);
+    --color-delta-border: var(--delta-border);
+    --color-delta: var(--delta-text);
+
+    /* DESIGN.md §4 radius scale */
+    --radius: 12px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 20px;
+
+    --shadow-card: var(--shadow-card-value);
+    --shadow-pop: var(--shadow-pop-value);
+    --shadow-brand: 0 4px 16px var(--brand-glow);
+
+    --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+
+    --text-display: 28px;
+    --text-display--line-height: 34px;
+    --text-stat: 24px;
+    --text-stat--line-height: 30px;
+    --text-overline: 11px;
+    --text-overline--line-height: 16px;
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    html,
+    body {
+        @apply bg-background text-foreground;
+    }
+
+    body {
+        font-feature-settings: 'cv11', 'ss01';
+    }
+
+    /* DESIGN.md §3: every number in tables, money and stats lines up. */
+    .tabular,
+    td,
+    [data-money] {
+        font-variant-numeric: tabular-nums;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+}
