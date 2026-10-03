@@ -242,11 +242,17 @@ export function LetterTools({ dealId, letter }) {
                                     {v.reason && ` · ${v.reason}`}
                                 </div>
                             </div>
-                            <Button variant="outline" size="sm" asChild>
-                                <a href={v.href} target="_blank" rel="noreferrer">
-                                    Open PDF
-                                </a>
-                            </Button>
+                            {v.has_pdf ? (
+                                <Button variant="outline" size="sm" asChild>
+                                    <a href={v.href} target="_blank" rel="noreferrer">
+                                        Open PDF
+                                    </a>
+                                </Button>
+                            ) : (
+                                <span className="text-xs text-muted-foreground">
+                                    PDF not copied yet
+                                </span>
+                            )}
                         </li>
                     ))}
                 </ul>

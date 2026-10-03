@@ -22,7 +22,8 @@ What you see depends on your **role**. If a menu item or button mentioned here i
 12. [Deals: the deal workspace](#12-deals-the-deal-workspace)
 13. [Your dashboard](#13-your-dashboard)
 14. [For super-admins: God Mode](#14-for-super-admins-god-mode)
-15. [Common messages and what they mean](#15-common-messages-and-what-they-mean)
+15. [Data brought over from Stack](#15-data-brought-over-from-stack)
+16. [Common messages and what they mean](#16-common-messages-and-what-they-mean)
 
 ---
 
@@ -345,7 +346,18 @@ Every God Mode change is permanent: who made it, when, why, and the values befor
 
 ---
 
-## 15. Common messages and what they mean
+## 15. Data brought over from Stack
+
+At go-live, users, roles, masters, companies and Debenture Trustee deals are copied from Stack (the old system).
+- **Your account:** sign in with your usual employee code and your Stack password. You'll be asked to choose a new password and set up 2FA straight away.
+- **Imported letters:** older engagement letter versions show **PDF not copied yet** until the files are brought over from Stack. The letter details (number, date, version) are already there.
+- **Pending status changes:** deals that were waiting in Stack for redemption, closure or cancellation approval arrive at their current status with the request open. Management and Accounts approve them on the deal's Status tab.
+- **Fees and schedules:** billed periods are exactly as Stack billed them. Deals whose fee setup in Stack was incomplete come without fees; set them up through God Mode if needed.
+- **Placeholders:** a user email like `user-123@legacy.invalid` means Stack had no usable email for that person. Ask an administrator to correct it.
+
+---
+
+## 16. Common messages and what they mean
 
 | Message | Meaning / what to do |
 |---|---|
@@ -376,6 +388,7 @@ Every God Mode change is permanent: who made it, when, why, and the values befor
 | *This record changed after you opened it…* (God Mode) | Someone else edited it. Reload the page and make the correction again. |
 | *The record has changed since this correction…* (God Mode undo) | Undoing would overwrite a later edit. Correct the record by hand instead. |
 | *That EL number has already been used.* | Every EL number, including retired ones, can only be used once. |
+| *The PDF of … hasn't been copied over from Stack yet.* | The letter came from Stack and its file hasn't been brought over yet. |
 | *Tax settings are incomplete.* | Ask an administrator to set Beacon's GSTIN and a GST rate. |
 | *403 / This action is unauthorized.* | Your role doesn't allow this. Ask an administrator if you need it. |
 

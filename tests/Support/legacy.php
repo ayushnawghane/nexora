@@ -166,8 +166,148 @@ function legacySchema(): void
     $schema->create('transaction', function (Blueprint $t) use ($flags) {
         $t->id();
         $t->bigInteger('product_id')->nullable();
+        $t->string('cl_no')->nullable();
+        $t->string('deal_id')->nullable();
         $t->bigInteger('company_id')->nullable();
         $t->bigInteger('company_address_id')->nullable();
+        $t->bigInteger('gst_id')->nullable();
+        $t->bigInteger('team_id')->nullable();
+        $t->bigInteger('rm_id')->nullable();
+        $t->bigInteger('signatory_id')->nullable();
+        $t->bigInteger('transaction_type_id')->nullable();
+        $t->bigInteger('arranger_id')->nullable();
+        $t->bigInteger('lead_id1')->nullable();
+        $t->string('originated_by')->nullable();
+        $t->text('transaction_brief')->nullable();
+        $t->string('listed_unlisted')->nullable();
+        $t->string('issue_type')->nullable();
+        $t->string('secured')->nullable();
+        $t->string('rated')->nullable();
+        $t->decimal('issue_pool_size', 20, 2)->nullable();
+        $t->decimal('gso_size', 20, 2)->nullable();
+        $t->decimal('total_issue_size', 20, 2)->nullable();
+        $t->decimal('tenure_months', 8, 2)->nullable();
+        $t->string('status')->nullable();
+        $t->integer('status_id')->nullable();
+        $t->date('cl_date')->nullable();
+        $t->date('offer_date')->nullable();
+        $t->date('deal_closed_date')->nullable();
+        $t->tinyInteger('is_schedule_verified')->nullable();
+        $t->bigInteger('created_by')->nullable();
+        $t->bigInteger('updated_by')->nullable();
+        $flags($t);
+    });
+    $schema->create('issue_details', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        foreach (['issue_pool_size', 'gso_size', 'ncd_issue', 'ocd_issue', 'ccd_issue', 'mld_issue', 'ncd_gso', 'ocd_gso', 'ccd_gso', 'mld_gso'] as $column) {
+            $t->decimal($column, 20, 2)->nullable();
+        }
+        $flags($t);
+    });
+    $schema->create('transaction_contact', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        $t->bigInteger('contact_id');
+        $t->string('recipient')->nullable();
+        $t->string('billing_recipient')->nullable();
+        $flags($t);
+    });
+    $schema->create('acceptance_fees', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        $t->tinyInteger('accept_amount_type')->nullable();
+        $t->decimal('accpt_amount', 18, 6)->nullable();
+        $t->decimal('accpt_perc', 18, 6)->nullable();
+        $t->bigInteger('accpt_lavy')->nullable();
+        $t->bigInteger('accpt_frequency')->nullable();
+        $t->bigInteger('accpt_effect_day')->nullable();
+        $t->date('acpt_custom_date')->nullable();
+        $t->bigInteger('accpt_payment_term')->nullable();
+        $flags($t);
+    });
+    $schema->create('service_fees', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        $t->tinyInteger('serv_amount_type')->nullable();
+        $t->decimal('service_amount', 18, 6)->nullable();
+        $t->decimal('service_perc', 18, 6)->nullable();
+        $t->bigInteger('service_lavy')->nullable();
+        $t->bigInteger('service_frequency')->nullable();
+        $t->bigInteger('service_eff_day')->nullable();
+        $t->date('service_custom_date')->nullable();
+        $t->bigInteger('service_pay_term')->nullable();
+        $t->bigInteger('service_escalation')->nullable();
+        $t->tinyInteger('service_escalation_type')->nullable();
+        $t->decimal('service_escalation_fees', 8, 2)->nullable();
+        $t->bigInteger('service_years')->nullable();
+        $flags($t);
+    });
+    $schema->create('master_frequency', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->integer('type');
+        $t->integer('flag');
+        $t->integer('frequency_id');
+        $t->string('frequency');
+        $flags($t);
+    });
+    $schema->create('master_cl_schedules', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        $t->integer('tab_id');
+        $t->string('fy')->nullable();
+        $t->date('bill_date')->nullable();
+        $t->date('from_date')->nullable();
+        $t->date('to_date')->nullable();
+        $t->decimal('no_of_days', 8, 2)->nullable();
+        $t->decimal('no_of_days_in_year', 8, 2)->nullable();
+        $t->decimal('base_amount', 18, 2)->nullable();
+        $t->decimal('applicable_fees', 18, 2)->nullable();
+        $flags($t);
+    });
+    $schema->create('el_versioning', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        $t->string('cl_no')->nullable();
+        $t->string('cl_no_new')->nullable();
+        $t->integer('revised_count')->nullable();
+        $t->bigInteger('upload_id')->nullable();
+        $t->bigInteger('created_by')->nullable();
+        $flags($t);
+    });
+    $schema->create('upload_file', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->string('name')->nullable();
+        $t->string('path')->nullable();
+        $flags($t);
+    });
+    $schema->create('transaction_billing_address', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        $t->bigInteger('address_id');
+        $flags($t);
+    });
+    $schema->create('update_status', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        $t->string('previous_status')->nullable();
+        $t->string('new_status')->nullable();
+        $t->date('redemption_date')->nullable();
+        $t->bigInteger('upload_id')->nullable();
+        $t->tinyInteger('is_approved')->default(0);
+        $t->bigInteger('created_by')->nullable();
+        $flags($t);
+    });
+    $schema->create('transaction_status_log', function (Blueprint $t) {
+        $t->id();
+        $t->integer('tran_id');
+        $t->integer('status_id');
+        $t->integer('created_by')->nullable();
+        $t->dateTime('created_date')->nullable();
+    });
+    $schema->create('transaction_status_master', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->string('status');
         $flags($t);
     });
     $schema->create('roles', function (Blueprint $t) use ($flags) {

@@ -134,8 +134,8 @@ class GodModeController extends Controller
                 'min_date' => $transaction->approved_at?->toDateString(),
                 'max_date' => today()->toDateString(),
                 'fixed_date' => $transaction->feeLines()->get()->first(fn (FeeLine $f) => $f->start_reference === FeeStartReference::ElDate)?->start_date->toDateString(),
-                'document' => $current->body_html,
-                'body' => CorrectEngagementLetter::bodyOf($current->body_html),
+                'document' => $document = app(CorrectEngagementLetter::class)->documentOf($transaction, $current),
+                'body' => CorrectEngagementLetter::bodyOf($document),
                 'retired' => RetiredElNumber::query()->where('transaction_id', $transaction->id)->pluck('el_number'),
                 'versions' => $latest->map(fn (EngagementLetter $l) => [
                     'version' => $l->version,
@@ -145,6 +145,7 @@ class GodModeController extends Controller
                     'generated_by' => $l->generator->name,
                     'generated_at' => $l->created_at?->toIso8601String(),
                     'href' => route('transactions.letter.download', [$id, $l->version]),
+                    'has_pdf' => $l->hasPdf(),
                 ]),
             ] : null,
             'history' => $this->history(GodModeChange::query()

@@ -57,7 +57,8 @@ test('without a GSTIN the address state is the place of supply; tax mode follows
 
 test('the GSTIN must match the address and both must be the company\'s own active records', function () {
     dealUser(['deals.edit']);
-    $karnatakaGstin = CompanyGstin::factory()->for($this->company)->create(['state_id' => $this->karnataka]);
+    // Entity numbers 1 and 2 fixed, so the two GSTINs can never come out the same.
+    $karnatakaGstin = CompanyGstin::factory()->for($this->company)->create(['state_id' => $this->karnataka, 'gstin' => CompanyGstinFactory::gstinFor('29', $this->company->pan, '1')]);
     $mumbai = CompanyAddress::factory()->for($this->company)->create(['state_id' => $this->maharashtra]);
     $tied = CompanyAddress::factory()->for($this->company)->create(['state_id' => $this->karnataka, 'pincode' => '560001', 'company_gstin_id' => $karnatakaGstin->id]);
     $otherGstin = CompanyGstin::factory()->for($this->company)->create(['state_id' => $this->karnataka, 'gstin' => CompanyGstinFactory::gstinFor('29', $this->company->pan, '2')]);

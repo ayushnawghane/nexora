@@ -101,18 +101,24 @@ function Overview({ deal, letters }) {
                                         {l.reason && ` · ${l.reason}`}
                                     </div>
                                 </div>
-                                <Button variant="outline" size="sm" asChild>
-                                    <a
-                                        href={route('transactions.letter.download', [
-                                            deal.id,
-                                            l.version,
-                                        ])}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                    >
-                                        Open PDF
-                                    </a>
-                                </Button>
+                                {l.has_pdf ? (
+                                    <Button variant="outline" size="sm" asChild>
+                                        <a
+                                            href={route('transactions.letter.download', [
+                                                deal.id,
+                                                l.version,
+                                            ])}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            Open PDF
+                                        </a>
+                                    </Button>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">
+                                        PDF not copied yet
+                                    </span>
+                                )}
                             </li>
                         ))}
                     </ul>

@@ -141,8 +141,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - ✅ Wording editor: instead of TipTap (its StarterKit would strip the letter's tables, classes and page breaks), the rendered letter is edited in place in a sandboxed frame using the browser's own rich-text editing. The server sanitises the body (allow-list of text/table tags and classes; links unwrapped; no scripts or inline styles) and keeps the original `<head>`, so the letter's styles can't be changed.
 - ✅ Checked in headless Chrome at 375–1440px in both themes, including a real correction + undo and a wording save through the browser
 
-### M6: Legacy data import 🟡
-- ✅ `php artisan legacy:import {organisation|roles|masters|companies|all} [--dry-run]`. All selected areas run in **one DB transaction**: a failure leaves Nexora untouched, and `--dry-run` does the whole import then rolls it back (signature files aren't written). Production asks for confirmation (`--force` to skip). Imports aren't written to the activity log.
+### M6: Legacy data import ✅
+- ✅ `php artisan legacy:import {organisation|roles|masters|companies|transactions|all} [--dry-run]`. All selected areas run in **one DB transaction**: a failure leaves Nexora untouched, and `--dry-run` does the whole import then rolls it back (signature files aren't written). Production asks for confirmation (`--force` to skip). Imports aren't written to the activity log.
 - ✅ Reads through read-only Eloquent models (`app/Legacy/Models`, writes throw) on the `legacy` connection, which uses the MySQL user **`nexora_legacy_ro`** (SELECT only on `beacon_stack`): legacy data can't be changed, by code or by mistake.
 - ✅ Every imported row keeps `legacy_id`; re-runs update instead of duplicating. Rows created in Nexora beforehand are adopted (e.g. the seeded DEB product). Legacy rows merged into another record are kept in `legacy_aliases`, so later areas resolve them.
 - ✅ Each run prints a report (read / created / updated / unchanged / rejected, plus adjustments and totals) and saves the full JSON under `storage/app/private/legacy-import/`.
@@ -151,7 +151,15 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - ✅ **masters:** lead sources, contact types, transaction types, arrangers, banks, pincodes (state names matched to GST states)
 - ✅ **companies:** companies (same CIN entered twice → merged, 22 merges), GSTINs (repeats merged, 318), billing addresses and registered offices (city/state from the pincode or GSTIN state), contacts (unnamed mailbox contacts kept, named after their email)
 - Dry run against `beacon_stack` (2026-10-03): 288 users, 10 roles, 19,472 pincodes, 1,552 companies, 1,133 GSTINs, 3,145 billing addresses, 760 registered offices, 5,389 contacts. Rejections are data that can't be placed (e.g. 456 addresses with no company, 518 "NA" GSTINs, 197 contacts with no email or mobile), each listed with its reason.
-- ⬜ **transactions:** DT deals (2,021 in legacy) with issue details, contacts, fees, schedules, approval history, EL versions, deal status and billing; seed the EL sequence from the legacy maximum per financial year; reconciliation of fee totals
+- ✅ **transactions** (DT, decided with the project owner on 2026-10-03):
+  - Deals with issue details and instrument split, letter contacts (To/Cc), deal billing and billing contacts. Stack's free-text statuses are mapped to the transaction and deal state machines. Deals deleted in Stack aren't imported.
+  - **Fees mapped where Stack's data is complete** (the option codes are resolved through `master_frequency` by their text). **Stack's billed periods are kept exactly as billed**, never recalculated. Fees with no amount, and periods of fee types Nexora doesn't have, are reported.
+  - **Letter versions arrive as records**, showing "PDF not copied yet". Set `LEGACY_UPLOADS_PATH` to a copy of Stack's uploads folder and re-run to attach the PDFs.
+  - Deals marked "Requested Redemption / Closure / Cancellation" arrive at their current status with an **open status request** for Management and Accounts.
+  - Status history from Stack's status log. The **EL number sequence** for each financial year continues after the highest number Stack used (any product, any letter version).
+  - Reconciliation of billed periods: Stack ₹16,64,60,790.24 vs Nexora ₹16,62,55,228.24. The difference is the 6 service periods whose fee had no usable data, each listed in the report.
+- Dry run of everything against `beacon_stack` (2026-10-04): 1,924 of 1,945 DT deals (21 have no imported company), 2,393 fee lines, 1,493 billed periods, 3,191 letter versions, 3,404 letter contacts, 1,624 deal billings, 290 open status requests.
+- ⬜ The real import runs at go-live, into the production database, after a final dry run.
 
 ### Out of scope for Phase 1
 Other products, billing and invoicing, ISIN, legal and security modules, outward and payouts, the AIF client portal, the approver mobile app, reports and payment links.
@@ -162,13 +170,13 @@ Other products, billing and invoicing, ISIN, legal and security modules, outward
 
 | Check | Result (last full run) |
 |---|---|
-| Tests | 257 passed (2000+ assertions) |
+| Tests | 259 passed (2,000+ assertions) |
 | Pint / PHPStan level 5 | Clean |
 | ESLint / Prettier / build | Clean |
 
-All gates were run on 2026-10-03 after M5b was completed. Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen.
+All gates were run on 2026-10-04 after M6 was completed. Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen.
 
-**Next step:** M6, the legacy data import (`legacy:import {area} --dry-run`, re-runnable through `legacy_id`, with a reconciliation report, seeding the EL number sequence from the legacy maximum).
+**Next step:** go-live preparation: owner sign-off on the import rules and the open items in §6, a copy of Stack's uploads folder for the letter PDFs, then a final dry run and the real import. Phase 2 (documentation, execution, billing) after that.
 
 ## 6. Inputs needed
 
@@ -195,4 +203,7 @@ Items marked **⏳ Pending from project owner** are waiting on the project owner
 | Legacy import rules for users: inactive + placeholder code `L{id}` for users without an employee code; repeated/missing emails get `user-{id}@legacy.invalid`; everyone re-sets password and 2FA | M6 organisation import | ⏳ Pending from project owner (confirm) |
 | `config/legacy.php` permission map (legacy screen permission → Nexora permission) | M6 roles import | ⏳ Pending from project owner (review the map; unmapped permissions grant nothing) |
 | Merging companies entered twice with the same CIN, and dropping invalid/repeated PANs (PAN filled from GSTIN when missing) | M6 companies import | ⏳ Pending from project owner (confirm) |
+| A copy of Stack's uploads folder (the root `upload_file.path` is relative to, e.g. containing `execution/el/…pdf`) | Attaching the 3,191 imported letter PDFs (`LEGACY_UPLOADS_PATH`) | ⏳ Pending from project owner |
+| Stack letter version #3196 says `BTL/DEB/EL/25-26/3830` while its deal is `…/25-26/4`, so the FY 25-26 sequence continues after 3830 to be safe | EL numbering | ⏳ Pending from project owner (confirm, or say which number is real) |
+| Origin is blank on 1,714 Stack DT deals; they're imported as "Operations" | Deal origin | ⏳ Pending from project owner (confirm) |
 | WAMP vhost `nexora.test` | Local URL | ⬜ Optional (`php artisan serve` works) |

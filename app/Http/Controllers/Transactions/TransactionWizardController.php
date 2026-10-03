@@ -158,6 +158,7 @@ class TransactionWizardController extends Controller
                 'reason' => $l->reason,
                 'generated_by' => $l->generator->name,
                 'generated_at' => $l->created_at?->toIso8601String(),
+                'has_pdf' => $l->hasPdf(),
             ]),
             'letterIssue' => $transaction->status === TransactionStatus::Approved && $user->can('transactions.issue_el') ? [
                 // A fee that runs from the EL date fixes the date the letter must carry.

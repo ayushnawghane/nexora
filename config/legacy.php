@@ -10,6 +10,10 @@
 */
 
 return [
+    // A copy of Stack's upload folder (the root its upload_file.path values are relative to, e.g. it
+    // contains execution/el/…pdf). When set, the transactions import attaches letter PDFs from it.
+    'uploads_path' => env('LEGACY_UPLOADS_PATH'),
+
     'permission_map' => [
         // Transactions
         'transaction_view' => ['transactions.view'],

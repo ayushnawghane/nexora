@@ -116,6 +116,7 @@ class DealController extends Controller
                 'reason' => $l->reason,
                 'generated_by' => $l->generator->name,
                 'generated_at' => $l->created_at?->toIso8601String(),
+                'has_pdf' => $l->hasPdf(),
             ]),
             'billing' => $this->billing($transaction, $gst),
             'status' => $this->status($transaction, $user),

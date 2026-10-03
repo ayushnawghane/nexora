@@ -25,15 +25,21 @@ class EngagementLetterController extends Controller
             ->with('success', "Engagement letter {$letter->el_number} issued. The deal is now active.");
     }
 
-    /** Streams one version's PDF to anyone who can view the transaction. */
-    public function download(Transaction $transaction, int $version): StreamedResponse
+    /**
+     * Streams one version's PDF to anyone who can view the transaction. Versions imported from Stack
+     * may not have their PDF copied over yet.
+     */
+    public function download(Transaction $transaction, int $version): StreamedResponse|RedirectResponse
     {
         $this->authorize('view', $transaction);
 
         /** @var EngagementLetter $letter */
         $letter = $transaction->engagementLetters()->where('version', $version)->firstOrFail();
+        if (! $letter->hasPdf()) {
+            return back()->with('error', "The PDF of {$letter->el_number} (version {$letter->version}) hasn't been copied over from Stack yet.");
+        }
         $name = str_replace('/', '-', $letter->el_number)."-v{$letter->version}.pdf";
 
-        return Storage::disk('local')->response($letter->pdf_path, $name, ['Content-Type' => 'application/pdf'], 'inline');
+        return Storage::disk('local')->response((string) $letter->pdf_path, $name, ['Content-Type' => 'application/pdf'], 'inline');
     }
 }

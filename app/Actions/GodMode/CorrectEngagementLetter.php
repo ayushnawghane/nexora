@@ -51,7 +51,7 @@ class CorrectEngagementLetter
                 throw ValidationException::withMessages(['body' => 'The letter can\'t be empty.']);
             }
 
-            return [$this->replaceBody($latest->body_html, $body), null, null];
+            return [$this->replaceBody($this->documentOf($locked, $latest), $body), null, null];
         });
     }
 
@@ -79,7 +79,7 @@ class CorrectEngagementLetter
             $html = str_replace(
                 [$oldNumber, (string) $oldDate?->format('F j, Y')],
                 [$number, $newDate->format('F j, Y')],
-                $latest->body_html,
+                $this->documentOf($locked, $latest),
             );
 
             return [$html, null, $number !== $oldNumber ? $oldNumber : null];
@@ -94,7 +94,7 @@ class CorrectEngagementLetter
             }
 
             // The stored HTML stays that of the previous version: it's the closest text record we have.
-            return [$latest->body_html, $pdf, null];
+            return [$this->documentOf($locked, $latest), $pdf, null];
         });
     }
 
@@ -156,6 +156,15 @@ class CorrectEngagementLetter
             }
             throw $e;
         }
+    }
+
+    /**
+     * The latest version's HTML; a version imported from Stack has none, so the letter is rendered
+     * from the current data with that version's number and date.
+     */
+    public function documentOf(Transaction $deal, EngagementLetter $latest): string
+    {
+        return $latest->body_html ?? $this->renderer->html($deal, $latest->el_number, CarbonImmutable::parse($latest->el_date));
     }
 
     private function guardDate(Transaction $deal, CarbonImmutable $date): void
