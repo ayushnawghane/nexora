@@ -15,7 +15,10 @@ use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-/** Transaction lists by stage. The wizard (TransactionWizardController) handles editing drafts. */
+/**
+ * Transaction lists up to the engagement letter. The wizard (TransactionWizardController) handles editing
+ * drafts; once the letter is issued the transaction is listed and worked on as a deal (DealController).
+ */
 class TransactionController extends Controller
 {
     /** List name => [title, description, statuses shown]. */
@@ -38,16 +41,6 @@ class TransactionController extends Controller
     public function approved(Request $request): Response
     {
         return $this->list($request, 'approved');
-    }
-
-    public function active(Request $request): Response
-    {
-        return $this->list($request, 'active');
-    }
-
-    public function closed(Request $request): Response
-    {
-        return $this->list($request, 'closed');
     }
 
     /** Excel download of a list, with the same search applied. */

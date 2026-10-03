@@ -1,6 +1,6 @@
 # How to use Nexora
 
-This guide covers what you can do in Nexora **today**. Transactions, deals, approvals and God Mode are still being built. They'll be added here as they go live (see [PLAN.md](PLAN.md)).
+This guide covers what you can do in Nexora **today**. God Mode and the Phase 2 modules (documentation, execution, billing and more) are still being built. They'll be added here as they go live (see [PLAN.md](PLAN.md)).
 
 What you see depends on your **role**. If a menu item or button mentioned here is missing, you don't have that permission. Ask an administrator.
 
@@ -19,7 +19,9 @@ What you see depends on your **role**. If a menu item or button mentioned here i
 9. [Companies](#9-companies)
 10. [For administrators: tax settings](#10-for-administrators-tax-settings)
 11. [Transactions: from draft to engagement letter](#11-transactions-from-draft-to-engagement-letter)
-12. [Common messages and what they mean](#12-common-messages-and-what-they-mean)
+12. [Deals: the deal workspace](#12-deals-the-deal-workspace)
+13. [Your dashboard](#13-your-dashboard)
+14. [Common messages and what they mean](#14-common-messages-and-what-they-mean)
 
 ---
 
@@ -169,6 +171,7 @@ The Masters page lists every reference list, grouped as:
 - **Organisation:** departments, designations, products, verticals, vertical teams
 - **Business development:** lead sources, arrangers, banks, contact types, transaction types
 - **Reference data:** pincodes
+- **Deals:** job sheet activities
 
 Open a list to see its entries. You can search, filter by status, and sort by clicking column headings.
 
@@ -184,6 +187,7 @@ Notes on specific lists:
 - **Verticals / teams:** choose the authorised signatory and the products they handle. Teams also hold the team, legal, compliance and billing emails.
 - **Arrangers / banks:** the CIN is optional but must be a valid 21-character CIN if entered.
 - **Pincodes:** 6 digits, not starting with 0, plus the city and state.
+- **Job sheet activities:** the checklist every deal's job sheet carries. *Applies to* limits an activity to listed or unlisted issues; leave it empty for every deal.
 
 ### Deactivate vs delete
 
@@ -265,14 +269,63 @@ Work through six steps. Each one saves on its own (**Save and continue**), so yo
 - You can't vote on a request you submitted. Email links are personal and expire after 7 days.
 
 ### Engagement letter
-Once approved, someone with *Issue engagement letters* opens the transaction and clicks **Issue letter**. This assigns the next EL number for the financial year (e.g. `BTL/DEB/EL/25-26/14`) and the deal code, creates the PDF, and moves the deal to **Active**. If a fee runs from the EL date, the EL date is fixed to that fee's approved start date. Every version of the letter is kept; open it with **Open PDF**.
+Once approved, someone with *Issue engagement letters* opens the transaction and clicks **Issue letter**. This assigns the next EL number for the financial year (e.g. `BTL/DEB/EL/25-26/14`) and the deal code, creates the PDF, and moves the transaction to **Active**. The deal opens at **Preliminary** in the deal workspace ([section 12](#12-deals-the-deal-workspace)). If a fee runs from the EL date, the EL date is fixed to that fee's approved start date. Every version of the letter is kept; open it with **Open PDF**.
 
 ### Lists
-**Drafts**, **Pending approval**, **Approved**, **Active** and **Closed** are under Transactions. Each can be searched and exported to Excel with **Export**.
+**Drafts**, **Pending approval** and **Approved** are under Transactions. Each can be searched and exported to Excel with **Export**. Once the letter is issued, the transaction is listed under **Deals**.
 
 ---
 
-## 12. Common messages and what they mean
+## 12. Deals: the deal workspace
+
+**Deals** in the sidebar (needs *View deals*). The list shows every transaction whose engagement letter has been issued. Search by company, CIN, EL number or deal code, and filter by status. Open a deal to see its workspace, one tab per area. Tabs for Phase 2 modules (Documentation, Execution, Security, ISIN, Covenants, Credit rating, Outward, Invoices) are placeholders for now.
+
+### Overview
+The EL number, deal code, issue and owners at a glance, and every version of the engagement letter. **Fees, schedule and approval** opens the full transaction record.
+
+### Contacts & billing
+Who the deal's invoices go to (needs *Edit deal contacts & billing*). Click **Set up billing** / **Edit** and choose:
+- the **billing address**, from the company's active addresses
+- the **GSTIN**: an address linked to a GSTIN always bills under it. Otherwise pick a GSTIN registered in the same state, or none.
+- the **billing contacts**: at least one needs an email.
+
+The **place of supply** is the GSTIN's state (or the address's state when there's no GSTIN). The same state as Beacon's GSTIN means **CGST + SGST**; any other state means **IGST**. Missing an address or contact? Add it on the company page first.
+
+### Status
+A deal moves through **Preliminary → Documentation → Live**, and from Live to **Redeemed**, **Foreclosed**, **Surrendered**, **Transferred**, **Defaulted** or **Closed**. It can be put **On hold** or **Cancelled** before it goes live. Click **Change status** (needs *Request deal status changes*) and give the new status, the date it took effect and a reason. Only the moves allowed from the current status are offered.
+
+| Change | Who must approve |
+|---|---|
+| Putting a deal **on hold** | Nobody: it applies at once |
+| **Cancelling** a Preliminary deal | Management |
+| Anything else | **Management and Accounts**, one person each |
+
+- Moving a deal **out of Live** needs the **NOC** uploaded with the request (PDF or image, up to 10 MB).
+- A deal on hold resumes only at the status it was put on hold from.
+- Approvers (*Approve status changes (Management)* / *(Accounts)*) are emailed, see the request on the dashboard, and vote on the deal's Status tab. One rejection (with a reason) rejects the request. You can't vote on your own request, and one person can't approve for both teams.
+- Only one request can be open at a time. The person who raised it can **withdraw** it until it's decided.
+- Redeemed, Foreclosed, Surrendered, Transferred, Cancelled and Closed are **final**: the deal closes and can't change again (except through God Mode).
+
+### Job sheet
+The checklist of activities for the deal (from *Masters → Job sheet activities*).
+- The **maker** (*Job sheet: maker*) clicks **Record**, enters the date the item was received and a comment, and sends it for checking.
+- A **checker** (*Job sheet: checker*) clicks **Verify**, or **Send back** with what needs fixing. **The checker can never be the maker.**
+- A sent-back entry can be corrected and resubmitted. A verified entry is final.
+
+### Activity
+Everything that happened on the deal, newest first: status changes, billing changes and job sheet entries, with who did it and when.
+
+---
+
+## 13. Your dashboard
+
+**Dashboard** is the first page after sign-in.
+- **Headline numbers** (if you can see deals or transactions): open deals, live deals, deals opened this financial year, issue size under trusteeship, drafts and transactions pending approval. Click a number to open the matching list.
+- **Waiting on you:** transactions to approve, deal status changes waiting for your team, job sheet entries to check, and your entries that were sent back. Oldest first; click one to go straight to it.
+
+---
+
+## 14. Common messages and what they mean
 
 | Message | Meaning / what to do |
 |---|---|
@@ -294,6 +347,12 @@ Once approved, someone with *Issue engagement letters* opens the transaction and
 | *Complete these steps first: …* | A wizard step is missing, or the schedule hasn't been verified. |
 | *You can't vote on a request you submitted.* | Another approver has to vote. |
 | *The … runs from the EL date and its approved schedule starts on …* | Issue the letter with that date, or revise the transaction to change the fee start date. |
+| *A … deal can't move to …* | That status change isn't allowed from the deal's current status. Only the offered moves are possible. |
+| *A status change is already waiting for approval.* | Wait for the open request to be decided, or withdraw it if you raised it. |
+| *Upload the NOC to move a deal out of Live.* | Attach the NOC to the request. |
+| *A deal on hold resumes at the status it was put on hold from (…).* | Pick that status, or cancel the deal. |
+| *You made this entry, so someone else has to check it.* | Another checker has to verify or send it back. |
+| *The GSTIN is registered in … but the address is in …* | Choose an address in the GSTIN's state, or a different GSTIN. |
 | *Tax settings are incomplete.* | Ask an administrator to set Beacon's GSTIN and a GST rate. |
 | *403 / This action is unauthorized.* | Your role doesn't allow this. Ask an administrator if you need it. |
 

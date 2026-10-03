@@ -11,11 +11,13 @@ import {
 } from '@/Components/ui/alert-dialog';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 /**
  * Confirmation step for actions that change important state. Sends the request only after the
  * user confirms, and keeps the dialog open (with a disabled button) until the server responds so
- * the action can't be fired twice.
+ * the action can't be fired twice. If the server refuses it (a validation error), the dialog closes
+ * and the reason is shown as a toast, since there is no form field to show it under.
  */
 export function ConfirmAction({
     trigger,
@@ -44,6 +46,11 @@ export function ConfirmAction({
             onSuccess: () => {
                 setOpen(false);
                 onSuccess?.();
+            },
+            onError: (errors) => {
+                setOpen(false);
+                const message = Object.values(errors)[0];
+                if (message) toast.error(message);
             },
         });
     };

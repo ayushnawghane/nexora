@@ -114,15 +114,20 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - ✅ Lists: drafts, pending approval, approved, active, closed, each with search and **Excel export**. Plus an Approvals inbox and a read-only transaction page with approval history and letter versions.
 - ✅ Security fix: the super-admin bypass now covers permission names only, not policy rules, so super-admins can't edit a submitted or active transaction either.
 
-### M5: DT deal workspace and dashboard ⬜
-- Deal page tabs:
-  - Overview (EL versions, PDF preview)
-  - Contacts & billing: per-deal billing address and GST. Same state as Beacon's GSTIN means CGST + SGST, otherwise IGST; with no GSTIN the state comes from the pincode.
-  - Status: a state machine with Management + Accounts approval for each request, and a NOC required when leaving Live
-  - Job sheet: maker/checker, and the checker can't be the maker
-  - Activity timeline
-- Placeholder tabs for Phase 2 modules (documentation, execution, security, ISIN, covenants, credit rating, outward, billing)
-- Dashboard: KPI cards, my pending approvals, pickup queue
+### M5: DT deal workspace and dashboard ✅
+- ✅ Schema: `deal_status` on transactions (set to **Preliminary** when the EL is issued), `deal_status_requests` / `deal_status_votes` / `deal_status_changes`, `deal_billing` + `deal_billing_contacts`, `job_sheet_activities` (master) and `deal_job_sheet_entries`
+- ✅ **Deal status state machine** (`DealStatus`): Preliminary → Documentation → Live → Redeemed / Foreclosed / Surrendered / Transferred / Defaulted / Closed, plus Hold and Cancelled. Legacy's "Requested …" statuses are open requests, not statuses. Final statuses close the transaction.
+  - Approval as in legacy: Hold applies at once; cancelling a Preliminary deal needs Management; everything else needs **Management and Accounts** (one vote per team, from two different people). Any rejection (with a reason) rejects it. No self-approval. One open request per deal (row-locked); the requester can withdraw it.
+  - Leaving Live needs the **NOC** upload (PDF/image ≤ 10 MB, stored privately, downloadable by deal viewers). A deal on hold resumes only at the status it was held from. The effective date can't be in the future or before the current status began.
+  - Approvers are emailed after commit (link to the deal; votes are only taken in the app, behind sign-in + 2FA)
+- ✅ **Contacts & billing:** billing address, GSTIN and billing contacts per deal, all the company's own active records. An address tied to a GSTIN bills under it; the GSTIN's state must match the address. The place of supply (GSTIN state, else address state) against Beacon's home state shows CGST + SGST or IGST.
+- ✅ **Job sheet:** activities from the master (all deals, or listed/unlisted only); maker records received date + comment, checker verifies or sends back with a reason; **the checker can't be the maker**; verified is final; history in the activity log
+- ✅ Deal workspace (`/deals/{id}`): Overview (key facts, EL versions), Contacts & billing, Status (requests, votes, history), Job sheet, Activity timeline; the open tab is kept in the URL. Placeholder tabs for the Phase 2 modules.
+- ✅ Deal list (`/deals`) with search and status filter; it replaces the broken *Active* / *Closed* transaction lists (their routes pointed at lists that didn't exist)
+- ✅ Dashboard: KPI cards (open deals, live deals, deals opened this FY, issue size under trusteeship, drafts, pending approval) and a **Waiting on you** queue (transaction votes, status changes for your team, job sheet checks, your sent-back entries)
+- ✅ Masters engine supports enum fields (used for the job sheet activity's *Applies to*)
+- ✅ Fixes found along the way: a comma in any list search (e.g. "Sachdev, Gala and Bhatia Private Limited") crashed the list, because the query builder split it into an array, so splitting is now off (`config/query-builder.php`); ESLint never linted `.jsx` files (ESLint 9 default), so it now does, with the CLI-generated `Components/ui` excluded; confirm dialogs now show the server's refusal as a toast instead of silently staying open
+- ⏳ The legacy **pickup list** (deals whose executed documents are verified, ready for custody) needs the Execution module (Phase 2). It will join the dashboard queue then.
 
 ### M5b: God Mode ⬜
 - Search any record and open a deal's full record tree
@@ -146,13 +151,13 @@ Other products, billing and invoicing, ISIN, legal and security modules, outward
 
 | Check | Result (last full run) |
 |---|---|
-| Tests | 205 passed (1300+ assertions) |
+| Tests | 232 passed (1700+ assertions) |
 | Pint / PHPStan level 5 | Clean |
 | ESLint / Prettier / build | Clean |
 
-All gates were run on 2026-10-03 after M4 was completed.
+All gates were run on 2026-10-03 after M5 was completed. Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen.
 
-**Next step:** M5, the DT deal workspace (billing address and GST per deal, status changes with approvals, job sheet, activity) and the dashboard.
+**Next step:** M5b, God Mode (search any record, a generic editor with the normal validation rules, a mandatory reason, immutable change log with one-click rollback, and EL corrections as new versions).
 
 ## 6. Inputs needed
 
@@ -171,4 +176,9 @@ Items marked **⏳ Pending from project owner** are waiting on the project owner
 | Fee schedule conventions: round to whole rupees? A fee ends the day before start + tenure? | `config/fees.php`, `TransactionIssueDetail::maturityFrom()` (legacy was inconsistent on rounding) | ⏳ Pending from project owner (confirm, or give the rule) |
 | Go-ahead to commit and push, and the target branch | Saving the work so far to git | ✅ Push to `main` |
 | Fix for the timesheet hook (fires on every Bash command, not only after `git push`) | Developer tooling | ⏳ Pending from project owner (optional) |
+| Job sheet activity list (legacy `master_cl_job_sheet` is empty in the local copy) | Masters → Job sheet activities | ⏳ Pending from project owner (the list can be entered in the master, or sent to us) |
+| Who approves deal status changes for **Management** and for **Accounts** (legacy: departments 1 and 8) | Assigning *Approve status changes (Management / Accounts)* to roles | ⏳ Pending from project owner |
+| Does putting a **Live** deal on hold need the NOC? (legacy asks for it on every move out of Live) | `DealStatus::needsNocToLeave()` | ⏳ Pending from project owner (built as legacy: yes) |
+| Can a status change's effective date be in the future (e.g. a scheduled redemption)? | `RequestDealStatusChange` (built: no, today or earlier) | ⏳ Pending from project owner |
+| Should lists and the dashboard show only the user's vertical teams? (legacy scoped some views by team) | Deal list, dashboard | ⏳ Pending from project owner (built: everyone with the permission sees all deals) |
 | WAMP vhost `nexora.test` | Local URL | ⬜ Optional (`php artisan serve` works) |

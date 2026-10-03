@@ -145,6 +145,7 @@ class TransactionWizardController extends Controller
             ]),
             'can' => [
                 'update' => $user->can('update', $transaction),
+                'viewDeal' => $user->can('viewDeal', $transaction),
                 'vote' => $open !== null && $user->can('approvals.vote') && $open->requested_by !== $user->id
                     && $open->votes->doesntContain('user_id', $user->id),
                 'revise' => $transaction->status === TransactionStatus::Rejected && $user->can('create', Transaction::class),

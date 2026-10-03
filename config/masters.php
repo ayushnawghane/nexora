@@ -1,10 +1,12 @@
 <?php
 
+use App\Enums\Listing;
 use App\Models\Arranger;
 use App\Models\Bank;
 use App\Models\ContactType;
 use App\Models\Department;
 use App\Models\Designation;
+use App\Models\JobSheetActivity;
 use App\Models\LeadSource;
 use App\Models\Pincode;
 use App\Models\Product;
@@ -18,7 +20,7 @@ use App\Models\VerticalTeam;
 | Config-driven masters. Each entry is served by the generic MasterController and Masters/Show page.
 |
 | fields.<attribute>:
-|   type        text | email | select (belongsTo) | multiselect (belongsToMany)
+|   type        text | email | select (belongsTo) | multiselect (belongsToMany) | enum
 |   rules       validation rules (uniqueness is added automatically when unique = true)
 |   unique      enforce uniqueness (ignoring soft-deleted rows is NOT done: the DB index is the authority)
 |   transform   upper | lower — applied before validation
@@ -27,6 +29,7 @@ use App\Models\VerticalTeam;
 |   sortable    column can be sorted
 |   relation    Eloquent relation name (select/multiselect)
 |   options     [model, label column] for select/multiselect choices (active records only)
+|   enum        backed enum class for type = enum (shown as a select; empty_label names the blank choice)
 | dependents: relations that must be empty before a record can be deleted.
 */
 
@@ -39,6 +42,7 @@ return [
     'groups' => [
         'organisation' => 'Organisation',
         'business' => 'Business development',
+        'deals' => 'Deals',
         'reference' => 'Reference data',
     ],
 
@@ -136,6 +140,19 @@ return [
             // pincode + city together must be unique
             'unique_together' => [['pincode', 'city']],
             'default_sort' => 'pincode',
+        ],
+        'job-sheet-activities' => [
+            'group' => 'deals', 'label' => 'Job sheet activities', 'singular' => 'job sheet activity',
+            'model' => JobSheetActivity::class,
+            'fields' => [
+                'name' => $name(200),
+                'listing' => [
+                    'label' => 'Applies to', 'type' => 'enum', 'enum' => Listing::class, 'empty_label' => 'All deals',
+                    'rules' => ['nullable'], 'list' => true,
+                    'hint' => 'Leave empty for every deal, or limit it to listed or unlisted issues.',
+                ],
+            ],
+            'dependents' => ['entries'],
         ],
     ],
 ];

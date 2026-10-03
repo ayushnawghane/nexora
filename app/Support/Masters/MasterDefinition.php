@@ -152,6 +152,10 @@ class MasterDefinition
                 $fieldRules[] = $exists;
             }
 
+            if (($field['type'] ?? null) === 'enum') {
+                $fieldRules[] = Rule::enum($field['enum']);
+            }
+
             if (($field['type'] ?? null) === 'multiselect') {
                 $related = new ($field['options'][0]);
                 $rules["{$attribute}.*"] = ['integer', 'distinct', Rule::exists($related->getTable(), $related->getKeyName())];
@@ -223,8 +227,13 @@ class MasterDefinition
             $row[$attribute] = match ($field['type'] ?? 'text') {
                 'select' => $record->getAttribute($attribute),
                 'multiselect' => $record->{$field['relation']}->modelKeys(),
+                'enum' => $record->getAttribute($attribute)?->value,
                 default => $record->getAttribute($attribute),
             };
+
+            if (($field['type'] ?? null) === 'enum') {
+                $row["{$attribute}__label"] = $record->getAttribute($attribute)?->label() ?? ($field['empty_label'] ?? null);
+            }
 
             if (isset($field['relation'])) {
                 $labelColumn = $field['options'][1];
@@ -251,12 +260,17 @@ class MasterDefinition
             $entry = [
                 'name' => $attribute,
                 'label' => $field['label'],
-                'type' => $field['type'] ?? 'text',
+                // Enum fields are plain selects on the page.
+                'type' => ($field['type'] ?? 'text') === 'enum' ? 'select' : ($field['type'] ?? 'text'),
                 'required' => in_array('required', $field['rules'] ?? [], true),
                 'list' => (bool) ($field['list'] ?? false),
                 'sortable' => (bool) ($field['sortable'] ?? false),
                 'hint' => $field['hint'] ?? null,
             ];
+
+            if (($field['type'] ?? null) === 'enum') {
+                $entry['options'] = $field['enum']::options();
+            }
 
             if (isset($field['options'])) {
                 [$class, $labelColumn] = $field['options'];

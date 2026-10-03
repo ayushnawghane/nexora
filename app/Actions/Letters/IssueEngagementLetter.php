@@ -2,6 +2,7 @@
 
 namespace App\Actions\Letters;
 
+use App\Enums\DealStatus;
 use App\Enums\FeeStartReference;
 use App\Enums\TransactionStatus;
 use App\Models\EngagementLetter;
@@ -24,7 +25,8 @@ class IssueEngagementLetter
     /**
      * Issues the first engagement letter for an approved transaction: takes the next EL number of
      * the financial year (one sequence shared by all products, row-locked so numbers never collide),
-     * sets the deal code, stores the letter and its PDF as version 1 and makes the transaction Active.
+     * sets the deal code, stores the letter and its PDF as version 1 and makes the transaction Active,
+     * with the deal starting at Preliminary.
      * Everything happens in one DB transaction; on failure no number is used up.
      */
     public function handle(Transaction $transaction, User $actor, CarbonImmutable $elDate): EngagementLetter
@@ -43,7 +45,14 @@ class IssueEngagementLetter
             $locked->deal_code = "{$code}/{$fy}/{$locked->id}";
             $locked->updated_by = $actor->id;
             $locked->transitionTo(TransactionStatus::Active);
+            $locked->deal_status = DealStatus::Preliminary;
+            $locked->deal_status_since = Carbon::parse($elDate->toDateString());
             $locked->save();
+            $locked->statusChanges()->create([
+                'to_status' => DealStatus::Preliminary,
+                'effective_on' => $elDate,
+                'changed_by' => $actor->id,
+            ]);
 
             $html = $this->renderer->html($locked, $locked->el_number, $elDate);
             $path = "letters/{$locked->ulid}/v1.pdf";

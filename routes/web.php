@@ -9,6 +9,11 @@ use App\Http\Controllers\Companies\CompanyContactController;
 use App\Http\Controllers\Companies\CompanyController;
 use App\Http\Controllers\Companies\CompanyGstinController;
 use App\Http\Controllers\Companies\CompanyLookupController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Deals\DealBillingController;
+use App\Http\Controllers\Deals\DealController;
+use App\Http\Controllers\Deals\DealStatusController;
+use App\Http\Controllers\Deals\JobSheetController;
 use App\Http\Controllers\Masters\MasterController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\TaxSettingsController;
@@ -17,12 +22,11 @@ use App\Http\Controllers\Transactions\EngagementLetterController;
 use App\Http\Controllers\Transactions\TransactionController;
 use App\Http\Controllers\Transactions\TransactionWizardController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::redirect('/', '/dashboard');
 
 Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
-    Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -56,10 +60,8 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
         Route::get('drafts', [TransactionController::class, 'drafts'])->name('drafts');
         Route::get('pending', [TransactionController::class, 'pending'])->name('pending');
         Route::get('approved', [TransactionController::class, 'approved'])->name('approved');
-        Route::get('active', [TransactionController::class, 'active'])->name('active');
-        Route::get('closed', [TransactionController::class, 'closed'])->name('closed');
         Route::get('export/{list}', [TransactionController::class, 'export'])
-            ->whereIn('list', ['drafts', 'pending', 'approved', 'active', 'closed'])->name('export');
+            ->whereIn('list', ['drafts', 'pending', 'approved'])->name('export');
 
         Route::controller(TransactionWizardController::class)->group(function () {
             Route::get('create', 'create')->name('create');
@@ -72,6 +74,21 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
             Route::put('{transaction}/fees', 'updateFees')->name('fees');
             Route::post('{transaction}/schedule/verify', 'verifySchedule')->name('schedule.verify');
         });
+    });
+
+    // Once the engagement letter is issued, a transaction is worked on as a deal.
+    Route::prefix('deals')->name('deals.')->group(function () {
+        Route::get('/', [DealController::class, 'index'])->name('index');
+        Route::get('{transaction}', [DealController::class, 'show'])->name('show');
+        Route::put('{transaction}/billing', [DealBillingController::class, 'update'])->name('billing.update');
+        Route::post('{transaction}/status', [DealStatusController::class, 'store'])->name('status.store');
+        Route::post('{transaction}/job-sheet/{activity}', [JobSheetController::class, 'submit'])->name('job-sheet.submit');
+        Route::post('{transaction}/job-sheet/entries/{entry}/check', [JobSheetController::class, 'check'])->name('job-sheet.check');
+    });
+    Route::prefix('deal-status-requests/{statusRequest}')->name('deals.status.')->controller(DealStatusController::class)->group(function () {
+        Route::post('vote', 'vote')->name('vote');
+        Route::post('withdraw', 'withdraw')->name('withdraw');
+        Route::get('noc', 'noc')->name('noc');
     });
 
     Route::get('companies/lookup/{type}', CompanyLookupController::class)

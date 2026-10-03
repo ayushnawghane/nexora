@@ -224,6 +224,10 @@ test('the lists show transactions by stage', function () {
         ->where('transactions.data.0.id', $draft->ulid));
     $this->get('/transactions/pending')->assertInertia(fn ($page) => $page->where('transactions.data.0.id', $pending->ulid));
     $this->get('/transactions/drafts?filter[search]='.urlencode($draft->company->name))->assertInertia(fn ($page) => $page->where('transactions.total', 1));
+
+    // Company names with commas used to break the search (the value was split into a list).
+    $draft->company->update(['name' => 'Sachdev, Gala and Bhatia Private Limited']);
+    $this->get('/transactions/drafts?filter[search]='.urlencode('Sachdev, Gala'))->assertInertia(fn ($page) => $page->where('transactions.total', 1));
 });
 
 test('super-admins also cannot edit a transaction once it has left draft', function () {

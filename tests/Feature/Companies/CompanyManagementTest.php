@@ -66,6 +66,11 @@ test('the company list searches name, CIN, PAN and GSTIN', function () {
             ->where('companies.data.0.gstins_count', 1));
     }
 
+    // A comma is part of the search, not a list separator.
+    Company::factory()->create(['name' => 'Sachdev, Gala and Bhatia Private Limited']);
+    $this->get('/companies?filter[search]='.urlencode('Sachdev, Gala'))->assertInertia(fn ($page) => $page
+        ->where('companies.total', 1));
+
     $this->get('/companies?sort=-name')->assertOk();
     $this->get('/companies?sort=legacy_id')->assertStatus(400);
 });

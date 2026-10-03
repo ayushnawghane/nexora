@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DealStatus;
 use App\Enums\Origin;
 use App\Enums\TransactionStatus;
 use Database\Factories\TransactionFactory;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -27,6 +29,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property int $product_id
  * @property int $company_id
  * @property TransactionStatus $status
+ * @property DealStatus|null $deal_status
+ * @property Carbon|null $deal_status_since
  * @property string|null $el_number
  * @property Carbon|null $el_date
  * @property string|null $deal_code
@@ -64,6 +68,8 @@ class Transaction extends Model
     {
         return [
             'status' => TransactionStatus::class,
+            'deal_status' => DealStatus::class,
+            'deal_status_since' => 'date',
             'origin' => Origin::class,
             'el_date' => 'date',
             'schedule_verified_at' => 'datetime',
@@ -106,6 +112,18 @@ class Transaction extends Model
     public function isScheduleVerified(): bool
     {
         return $this->schedule_verified_at !== null;
+    }
+
+    /** A deal exists once the engagement letter has been issued. */
+    public function isDeal(): bool
+    {
+        return $this->deal_status !== null;
+    }
+
+    /** Deal records (billing, job sheet, status) can still change through the normal screens. */
+    public function isOpenDeal(): bool
+    {
+        return $this->deal_status !== null && ! $this->deal_status->isFinal();
     }
 
     /**
@@ -260,10 +278,52 @@ class Transaction extends Model
         return $this->hasMany(EngagementLetter::class)->orderByDesc('version');
     }
 
+    /**
+     * @return HasMany<DealStatusRequest, $this>
+     */
+    public function statusRequests(): HasMany
+    {
+        return $this->hasMany(DealStatusRequest::class);
+    }
+
+    /**
+     * @return HasMany<DealStatusChange, $this>
+     */
+    public function statusChanges(): HasMany
+    {
+        return $this->hasMany(DealStatusChange::class);
+    }
+
+    /**
+     * @return HasOne<DealBilling, $this>
+     */
+    public function billing(): HasOne
+    {
+        return $this->hasOne(DealBilling::class);
+    }
+
+    /**
+     * Company contacts who receive this deal's invoices.
+     *
+     * @return BelongsToMany<CompanyContact, $this>
+     */
+    public function billingContacts(): BelongsToMany
+    {
+        return $this->belongsToMany(CompanyContact::class, 'deal_billing_contacts')->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<DealJobSheetEntry, $this>
+     */
+    public function jobSheetEntries(): HasMany
+    {
+        return $this->hasMany(DealJobSheetEntry::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly([...$this->fillable, 'status', 'el_number', 'el_date', 'deal_code', 'schedule_verified_at'])
+            ->logOnly([...$this->fillable, 'status', 'deal_status', 'el_number', 'el_date', 'deal_code', 'schedule_verified_at'])
             ->logOnlyDirty();
     }
 }

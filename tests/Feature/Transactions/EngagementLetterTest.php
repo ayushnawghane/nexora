@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Approvals\CastVote;
+use App\Enums\DealStatus;
 use App\Enums\TransactionStatus;
 use App\Enums\VoteDecision;
 use App\Models\ApprovalRequest;
@@ -43,6 +44,9 @@ test('issuing the letter numbers it, sets the deal code, stores the PDF and acti
     $transaction->refresh();
     $letter = $transaction->engagementLetters()->sole();
     expect($transaction->status)->toBe(TransactionStatus::Active)
+        ->and($transaction->deal_status)->toBe(DealStatus::Preliminary)
+        ->and($transaction->deal_status_since->toDateString())->toBe('2025-09-16')
+        ->and($transaction->statusChanges()->sole()->to_status)->toBe(DealStatus::Preliminary)
         ->and($transaction->el_number)->toBe('BTL/DEB/EL/25-26/1')
         ->and($transaction->deal_code)->toBe("DEB/25-26/{$transaction->id}")
         ->and($transaction->el_date->toDateString())->toBe('2025-09-16')

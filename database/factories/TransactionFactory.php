@@ -2,7 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Enums\DealStatus;
+use App\Enums\IssueType;
+use App\Enums\Listing;
 use App\Enums\Origin;
+use App\Enums\TransactionStatus;
 use App\Models\Company;
 use App\Models\Product;
 use App\Models\Transaction;
@@ -35,5 +39,29 @@ class TransactionFactory extends Factory
             'origin' => Origin::BusinessDevelopment,
             'created_by' => User::factory(),
         ];
+    }
+
+    /**
+     * A deal whose engagement letter was issued on 1 Apr 2025, now at $status, with a ₹200 crore
+     * issue. Saves going through approval and letter issue in tests that start from a live deal.
+     */
+    public function deal(DealStatus $status = DealStatus::Preliminary, Listing $listing = Listing::Unlisted): static
+    {
+        return $this->state(fn () => [
+            'status' => $status->isFinal() ? TransactionStatus::Closed : TransactionStatus::Active,
+            'deal_status' => $status,
+            'deal_status_since' => '2025-04-01',
+            'el_number' => 'BTL/DEB/EL/25-26/'.fake()->unique()->numberBetween(1, 999999),
+            'el_date' => '2025-04-01',
+            'approved_at' => '2025-03-28 10:00:00',
+        ])->afterCreating(function (Transaction $deal) use ($status, $listing) {
+            $deal->forceFill(['deal_code' => "DEB/25-26/{$deal->id}"])->save();
+            $deal->issueDetail()->create([
+                'listing' => $listing, 'issue_type' => IssueType::PrivatePlacement, 'is_secured' => true, 'is_rated' => false,
+                'base_issue_size' => '2000000000', 'green_shoe_size' => '0', 'total_issue_size' => '2000000000',
+                'tenure_months' => 36, 'tenure_days' => 0,
+            ]);
+            $deal->statusChanges()->create(['to_status' => $status, 'effective_on' => '2025-04-01', 'changed_by' => $deal->created_by]);
+        });
     }
 }

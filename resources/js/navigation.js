@@ -1,4 +1,5 @@
 import {
+    Briefcase,
     Building2,
     FileSignature,
     LayoutDashboard,
@@ -44,18 +45,9 @@ export const navigation = [
                         route: 'transactions.approved',
                         permission: 'transactions.view',
                     },
-                    {
-                        title: 'Active',
-                        route: 'transactions.active',
-                        permission: 'transactions.view',
-                    },
-                    {
-                        title: 'Closed',
-                        route: 'transactions.closed',
-                        permission: 'transactions.view',
-                    },
                 ],
             },
+            { title: 'Deals', route: 'deals.index', permission: 'deals.view', icon: Briefcase },
             {
                 title: 'Approvals',
                 route: 'approvals.index',

@@ -7,7 +7,7 @@ import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import AppLayout from '@/Layouts/AppLayout';
 import { Link } from '@inertiajs/react';
-import { PencilIcon } from 'lucide-react';
+import { BriefcaseIcon, PencilIcon } from 'lucide-react';
 
 const TONE = {
     draft: 'neutral',
@@ -43,13 +43,22 @@ export default function TransactionShow({
                     </span>
                 }
                 actions={
-                    can.update && (
-                        <Button asChild>
-                            <Link href={route('transactions.edit', transaction.id)}>
-                                <PencilIcon /> Continue editing
-                            </Link>
-                        </Button>
-                    )
+                    <>
+                        {can.update && (
+                            <Button asChild>
+                                <Link href={route('transactions.edit', transaction.id)}>
+                                    <PencilIcon /> Continue editing
+                                </Link>
+                            </Button>
+                        )}
+                        {can.viewDeal && (
+                            <Button asChild>
+                                <Link href={route('deals.show', transaction.id)}>
+                                    <BriefcaseIcon /> Open deal
+                                </Link>
+                            </Button>
+                        )}
+                    </>
                 }
             />
             <LetterPanel transactionId={transaction.id} letters={letters} issue={letterIssue} />

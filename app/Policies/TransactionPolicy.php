@@ -32,4 +32,30 @@ class TransactionPolicy
     {
         return $actor->can('transactions.submit') && $transaction->status->isEditable();
     }
+
+    /** The deal workspace exists once the engagement letter has been issued. */
+    public function viewDeal(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.view') && $transaction->isDeal();
+    }
+
+    public function editDeal(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.edit') && $transaction->isOpenDeal();
+    }
+
+    public function requestStatus(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.status.request') && $transaction->isOpenDeal();
+    }
+
+    public function makeJobSheet(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.jobsheet.make') && $transaction->isOpenDeal();
+    }
+
+    public function checkJobSheet(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.jobsheet.check') && $transaction->isOpenDeal();
+    }
 }
