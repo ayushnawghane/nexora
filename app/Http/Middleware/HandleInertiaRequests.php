@@ -58,6 +58,8 @@ class HandleInertiaRequests extends Middleware
             return Permissions::all();
         }
 
-        return $user->getAllPermissions()->pluck('name')->values()->all();
+        // God Mode is for super-admins only (the use-god-mode gate), so the permission alone
+        // mustn't show its menu item to anyone else.
+        return $user->getAllPermissions()->pluck('name')->reject(fn (string $name) => $name === 'god_mode.access')->values()->all();
     }
 }

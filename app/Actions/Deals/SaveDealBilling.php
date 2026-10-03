@@ -18,11 +18,13 @@ class SaveDealBilling
      * active records. An address tied to a GSTIN bills under that GSTIN. The place of supply is the
      * GSTIN's state, or the address's state when there is no GSTIN; it decides CGST + SGST vs IGST.
      *
+     * God Mode passes $force to correct the billing of a closed deal; every other rule still applies.
+     *
      * @param  array{company_address_id: int, company_gstin_id?: int|null, contact_ids: list<int>}  $data
      */
-    public function handle(Transaction $deal, User $actor, array $data): DealBilling
+    public function handle(Transaction $deal, User $actor, array $data, bool $force = false): DealBilling
     {
-        if (! $deal->isOpenDeal()) {
+        if (! $force && ! $deal->isOpenDeal()) {
             throw ValidationException::withMessages(['company_address_id' => 'Billing can\'t be changed on a closed deal.']);
         }
 

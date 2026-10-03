@@ -129,12 +129,17 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - ✅ Fixes found along the way: a comma in any list search (e.g. "Sachdev, Gala and Bhatia Private Limited") crashed the list, because the query builder split it into an array, so splitting is now off (`config/query-builder.php`); ESLint never linted `.jsx` files (ESLint 9 default), so it now does, with the CLI-generated `Components/ui` excluded; confirm dialogs now show the server's refusal as a toast instead of silently staying open
 - ⏳ The legacy **pickup list** (deals whose executed documents are verified, ready for custody) needs the Execution module (Phase 2). It will join the dashboard queue then.
 
-### M5b: God Mode ⬜
-- Search any record and open a deal's full record tree
-- A generic editor using the same validation rules as the normal forms
-- Reason required for every change. Changes stored immutably in `god_mode_changes`, with one-click rollback and stale-record protection.
-- Prompts to regenerate the schedule or the EL after a related change. Forced state changes keep the core rules.
-- EL corrections, each one creating a new version: regenerate from data, edit the wording for one deal (TipTap, sanitised), change the EL number or date (old number retired), upload a replacement PDF
+### M5b: God Mode ✅
+- ✅ Access: **super-admins only** (a `use-god-mode` gate; the *God Mode* permission alone isn't enough and doesn't show the menu), with a 2FA code from the last 15 minutes
+- ✅ Search companies (name, CIN, PAN, GSTIN) and transactions (EL number, deal code, company, **retired EL numbers**); open a company's or a deal's full record tree
+- ✅ **Generic editor**: one editor class per record type (`app/GodMode/Editors`): company, GSTIN, address, contact, transaction basics, letter contacts, issue details, fees, deal billing, forced deal status, job sheet entry. Each correction is validated by **the normal screen's own FormRequest** (rules, clean-up, messages, after-hooks; only its permission check is skipped, via `App\Support\FormRequestRules`) and saved through **the same action** the normal screen uses.
+- ✅ Reason required (10+ characters). `god_mode_changes` stores who, why, and the values before and after; the model refuses updates and deletes. **Stale-record protection**: a correction is refused if the record changed after the page was loaded (fingerprint), and so is one that changes nothing.
+- ✅ **One-click undo**: re-applies the old values through the same editor (so today's rules still apply), refused if the record changed since; the undo is its own logged change and can't itself be undone. Not offered where the old values aren't a complete record (e.g. the first fees on a deal) or for forced status changes.
+- ✅ Follow-up prompts: fees/issue corrections rebuild the schedule → *Verify schedule* (logged); corrections to data printed in the letter after its latest version → *letter may be out of date*
+- ✅ Forced status changes keep the core rules: only transitions `DealStatus` allows, final statuses close the transaction, the status history records it, and any open request is withdrawn
+- ✅ EL corrections, each a new version (old versions kept): regenerate from data; **edit the wording** for one deal; **change the EL number or date** (next number from the sequence, or one entered by hand that must match the date's financial year and never have been used; the old number goes into `retired_el_numbers` and the sequence moves past any hand-entered number; a fee tied to the EL date must be corrected first); **replace the PDF** (must really be a PDF)
+- ✅ Wording editor: instead of TipTap (its StarterKit would strip the letter's tables, classes and page breaks), the rendered letter is edited in place in a sandboxed frame using the browser's own rich-text editing. The server sanitises the body (allow-list of text/table tags and classes; links unwrapped; no scripts or inline styles) and keeps the original `<head>`, so the letter's styles can't be changed.
+- ✅ Checked in headless Chrome at 375–1440px in both themes, including a real correction + undo and a wording save through the browser
 
 ### M6: Legacy data import ⬜
 - `php artisan legacy:import {area} --dry-run`, run in this order: organisation & users → roles & permissions → masters → companies, GSTINs, addresses & contacts → DT transactions, fees, schedules, approvals & EL versions
@@ -151,13 +156,13 @@ Other products, billing and invoicing, ISIN, legal and security modules, outward
 
 | Check | Result (last full run) |
 |---|---|
-| Tests | 232 passed (1700+ assertions) |
+| Tests | 249 passed (1900+ assertions) |
 | Pint / PHPStan level 5 | Clean |
 | ESLint / Prettier / build | Clean |
 
-All gates were run on 2026-10-03 after M5 was completed. Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen.
+All gates were run on 2026-10-03 after M5b was completed. Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen.
 
-**Next step:** M5b, God Mode (search any record, a generic editor with the normal validation rules, a mandatory reason, immutable change log with one-click rollback, and EL corrections as new versions).
+**Next step:** M6, the legacy data import (`legacy:import {area} --dry-run`, re-runnable through `legacy_id`, with a reconciliation report, seeding the EL number sequence from the legacy maximum).
 
 ## 6. Inputs needed
 

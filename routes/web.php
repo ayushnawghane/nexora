@@ -14,6 +14,8 @@ use App\Http\Controllers\Deals\DealBillingController;
 use App\Http\Controllers\Deals\DealController;
 use App\Http\Controllers\Deals\DealStatusController;
 use App\Http\Controllers\Deals\JobSheetController;
+use App\Http\Controllers\GodMode\GodModeController;
+use App\Http\Controllers\GodMode\GodModeLetterController;
 use App\Http\Controllers\Masters\MasterController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\TaxSettingsController;
@@ -89,6 +91,22 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
         Route::post('vote', 'vote')->name('vote');
         Route::post('withdraw', 'withdraw')->name('withdraw');
         Route::get('noc', 'noc')->name('noc');
+    });
+
+    // God Mode: super-admins only, with a 2FA code entered in the last 15 minutes.
+    Route::prefix('god-mode')->name('god-mode.')->middleware(['can:use-god-mode', 'two-factor.recent:15'])->group(function () {
+        Route::get('/', [GodModeController::class, 'index'])->name('index');
+        Route::get('companies/{company}', [GodModeController::class, 'company'])->name('companies');
+        Route::get('transactions/{transaction}', [GodModeController::class, 'transaction'])->name('transactions');
+        Route::post('correct/{editor}/{id}', [GodModeController::class, 'correct'])->name('correct');
+        Route::post('changes/{change}/rollback', [GodModeController::class, 'rollback'])->name('rollback');
+        Route::post('transactions/{transaction}/schedule/verify', [GodModeController::class, 'verifySchedule'])->name('schedule.verify');
+        Route::prefix('transactions/{transaction}/letter')->name('letter.')->controller(GodModeLetterController::class)->group(function () {
+            Route::post('regenerate', 'regenerate')->name('regenerate');
+            Route::post('wording', 'wording')->name('wording');
+            Route::post('number', 'number')->name('number');
+            Route::post('pdf', 'pdf')->name('pdf');
+        });
     });
 
     Route::get('companies/lookup/{type}', CompanyLookupController::class)

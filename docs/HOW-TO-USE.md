@@ -1,6 +1,6 @@
 # How to use Nexora
 
-This guide covers what you can do in Nexora **today**. God Mode and the Phase 2 modules (documentation, execution, billing and more) are still being built. They'll be added here as they go live (see [PLAN.md](PLAN.md)).
+This guide covers what you can do in Nexora **today**. The Phase 2 modules (documentation, execution, billing and more) are still being built. They'll be added here as they go live (see [PLAN.md](PLAN.md)).
 
 What you see depends on your **role**. If a menu item or button mentioned here is missing, you don't have that permission. Ask an administrator.
 
@@ -21,7 +21,8 @@ What you see depends on your **role**. If a menu item or button mentioned here i
 11. [Transactions: from draft to engagement letter](#11-transactions-from-draft-to-engagement-letter)
 12. [Deals: the deal workspace](#12-deals-the-deal-workspace)
 13. [Your dashboard](#13-your-dashboard)
-14. [Common messages and what they mean](#14-common-messages-and-what-they-mean)
+14. [For super-admins: God Mode](#14-for-super-admins-god-mode)
+15. [Common messages and what they mean](#15-common-messages-and-what-they-mean)
 
 ---
 
@@ -325,7 +326,26 @@ Everything that happened on the deal, newest first: status changes, billing chan
 
 ---
 
-## 14. Common messages and what they mean
+## 14. For super-admins: God Mode
+
+**Administration → God Mode** (super-admins only). Corrects any business record when the normal screens can't, for example a deal that's already active or a letter that went out with a mistake. If you entered your 2FA code more than 15 minutes ago, you're asked for a fresh one first.
+
+- **Find the record:** search by company name, CIN, PAN, GSTIN, EL number (including old, retired ones) or deal code. A company page lists its GSTINs, addresses, contacts and transactions; a deal page lists its basics, letter contacts, issue details, fees, billing, status and job sheet.
+- **Correct it:** click **Correct**, change the values and give a **reason**. The values are checked exactly as on the normal screen, so God Mode can't save anything the regular form would refuse. If someone else changed the record after you opened the page, reload and try again.
+- **Undo:** each correction in the **Change history** has an **Undo** button. It puts the old values back (checked against today's rules) and is refused if the record has changed since. The undo is logged too. Some changes can't be undone this way (a forced status change, the first fees on a deal); make a new correction instead.
+- **Follow-ups:** correcting the issue or fees rebuilds the fee schedule. Check it on the normal view, then click **Verify schedule**. If data printed in the letter changed after its latest version, you're told the letter may be out of date.
+- **Force a status change:** moves a deal without the Management/Accounts vote, but only to a status its current status allows. A final status closes the deal.
+- **Engagement letter:** each correction is saved as a new version and the old versions stay:
+  - **Regenerate from data:** re-renders the letter from today's data with the same number and date.
+  - **Edit wording:** click into the letter and change the text, for this deal only. Links, scripts and inline styles are removed; the letter's layout is kept.
+  - **Number / date:** keep the number, take the next one for the financial year, or enter one (it must match the date's financial year and never have been used). A replaced number is **retired for good**. If a fee runs from the EL date, correct the fee's start date first.
+  - **Replace PDF:** upload a signed or corrected PDF.
+
+Every God Mode change is permanent: who made it, when, why, and the values before and after.
+
+---
+
+## 15. Common messages and what they mean
 
 | Message | Meaning / what to do |
 |---|---|
@@ -353,6 +373,9 @@ Everything that happened on the deal, newest first: status changes, billing chan
 | *A deal on hold resumes at the status it was put on hold from (…).* | Pick that status, or cancel the deal. |
 | *You made this entry, so someone else has to check it.* | Another checker has to verify or send it back. |
 | *The GSTIN is registered in … but the address is in …* | Choose an address in the GSTIN's state, or a different GSTIN. |
+| *This record changed after you opened it…* (God Mode) | Someone else edited it. Reload the page and make the correction again. |
+| *The record has changed since this correction…* (God Mode undo) | Undoing would overwrite a later edit. Correct the record by hand instead. |
+| *That EL number has already been used.* | Every EL number, including retired ones, can only be used once. |
 | *Tax settings are incomplete.* | Ask an administrator to set Beacon's GSTIN and a GST rate. |
 | *403 / This action is unauthorized.* | Your role doesn't allow this. Ask an administrator if you need it. |
 

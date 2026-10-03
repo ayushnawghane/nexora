@@ -83,7 +83,7 @@ return [
         'god_mode' => [
             'label' => 'God Mode',
             'permissions' => [
-                'god_mode.access' => 'Use God Mode corrections',
+                'god_mode.access' => 'Use God Mode corrections (super-admins only)',
             ],
         ],
     ],

@@ -55,6 +55,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(fn (User $user, string $ability) => in_array($ability, Permissions::all(), true)
             && $user->hasRole(Permissions::superAdminRole()) ? true : null);
 
+        // God Mode is for super-admins only, whatever permissions a role is given.
+        Gate::define('use-god-mode', fn (User $user) => $user->is_active && $user->hasRole(Permissions::superAdminRole()));
+
         Password::defaults(function () {
             $rule = Password::min(10)->letters()->mixedCase()->numbers()->symbols();
 
