@@ -73,6 +73,13 @@ return [
                 'roles.manage' => 'Create & edit roles and their permissions',
             ],
         ],
+        'settings' => [
+            'label' => 'Settings',
+            'permissions' => [
+                'settings.view' => 'View tax settings',
+                'settings.manage' => 'Change GST rates and Beacon\'s GSTIN',
+            ],
+        ],
         'god_mode' => [
             'label' => 'God Mode',
             'permissions' => [

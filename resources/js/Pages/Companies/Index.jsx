@@ -40,7 +40,7 @@ export default function CompaniesIndex({
                         href={route('companies.show', row.original.id)}
                         className="group block min-w-0"
                     >
-                        <div className="truncate font-medium text-foreground group-hover:text-primary">
+                        <div className="truncate font-medium text-foreground group-hover:text-brand-text">
                             {row.original.name}
                         </div>
                         {row.original.formerly_known_as && (

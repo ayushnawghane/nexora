@@ -2,13 +2,20 @@
 
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Approvals\ApprovalController;
+use App\Http\Controllers\Approvals\EmailApprovalController;
 use App\Http\Controllers\Companies\CompanyAddressController;
 use App\Http\Controllers\Companies\CompanyContactController;
 use App\Http\Controllers\Companies\CompanyController;
 use App\Http\Controllers\Companies\CompanyGstinController;
+use App\Http\Controllers\Companies\CompanyLookupController;
 use App\Http\Controllers\Masters\MasterController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Settings\TaxSettingsController;
 use App\Http\Controllers\ThemePreferenceController;
+use App\Http\Controllers\Transactions\EngagementLetterController;
+use App\Http\Controllers\Transactions\TransactionController;
+use App\Http\Controllers\Transactions\TransactionWizardController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -28,8 +35,47 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
         Route::post('users/{user}/reset-two-factor', [UserController::class, 'resetTwoFactor'])->name('users.reset-two-factor');
 
         Route::resource('roles', RoleController::class)->except(['show']);
+
+        Route::prefix('tax-settings')->name('settings.tax')->controller(TaxSettingsController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::put('gstin', 'updateGstin')->name('.gstin');
+            Route::post('rates', 'storeRate')->name('.rates.store');
+            Route::delete('rates/{rate}', 'destroyRate')->name('.rates.destroy');
+        });
     });
 
+    Route::get('approvals', [ApprovalController::class, 'index'])->name('approvals.index');
+    Route::post('approvals/{approvalRequest}/vote', [ApprovalController::class, 'vote'])->name('approvals.vote');
+    Route::post('transactions/{transaction}/submit', [ApprovalController::class, 'submit'])->name('transactions.submit');
+    Route::post('transactions/{transaction}/revise', [ApprovalController::class, 'revise'])->name('transactions.revise');
+    Route::post('transactions/{transaction}/letter', [EngagementLetterController::class, 'issue'])->name('transactions.letter.issue');
+    Route::get('transactions/{transaction}/letters/{version}', [EngagementLetterController::class, 'download'])
+        ->whereNumber('version')->name('transactions.letter.download');
+
+    Route::prefix('transactions')->name('transactions.')->group(function () {
+        Route::get('drafts', [TransactionController::class, 'drafts'])->name('drafts');
+        Route::get('pending', [TransactionController::class, 'pending'])->name('pending');
+        Route::get('approved', [TransactionController::class, 'approved'])->name('approved');
+        Route::get('active', [TransactionController::class, 'active'])->name('active');
+        Route::get('closed', [TransactionController::class, 'closed'])->name('closed');
+        Route::get('export/{list}', [TransactionController::class, 'export'])
+            ->whereIn('list', ['drafts', 'pending', 'approved', 'active', 'closed'])->name('export');
+
+        Route::controller(TransactionWizardController::class)->group(function () {
+            Route::get('create', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('{transaction}', 'show')->name('show');
+            Route::get('{transaction}/edit', 'edit')->name('edit');
+            Route::put('{transaction}/basics', 'updateBasics')->name('basics');
+            Route::put('{transaction}/contacts', 'updateContacts')->name('contacts');
+            Route::put('{transaction}/issue', 'updateIssue')->name('issue');
+            Route::put('{transaction}/fees', 'updateFees')->name('fees');
+            Route::post('{transaction}/schedule/verify', 'verifySchedule')->name('schedule.verify');
+        });
+    });
+
+    Route::get('companies/lookup/{type}', CompanyLookupController::class)
+        ->whereIn('type', ['cin', 'gstin', 'pan'])->middleware('throttle:30,1')->name('companies.lookup');
     Route::resource('companies', CompanyController::class)->except(['destroy']);
     Route::post('companies/{company}/toggle-active', [CompanyController::class, 'toggleActive'])->name('companies.toggle-active');
     Route::prefix('companies/{company}')->name('companies.')->scopeBindings()->group(function () {
@@ -52,6 +98,12 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
         Route::post('{master}/{record}/toggle', 'toggle')->whereNumber('record')->name('toggle');
         Route::delete('{master}/{record}', 'destroy')->whereNumber('record')->name('destroy');
     });
+});
+
+// Approver links from email: no sign-in, but the URL must carry a valid, unexpired signature.
+Route::middleware(['signed', 'throttle:20,1'])->controller(EmailApprovalController::class)->group(function () {
+    Route::get('approve/{approvalRequest}/{user}', 'show')->name('approvals.email');
+    Route::post('approve/{approvalRequest}/{user}', 'vote')->name('approvals.email.vote');
 });
 
 require __DIR__.'/auth.php';

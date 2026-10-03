@@ -1,6 +1,7 @@
 import { Combobox } from '@/Components/combobox';
 import { ConfirmAction } from '@/Components/confirm-action';
 import { PageHeader } from '@/Components/page-header';
+import { Alert, AlertDescription, AlertTitle } from '@/Components/ui/alert';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent } from '@/Components/ui/card';
@@ -37,13 +38,16 @@ import {
     TableHeader,
     TableRow,
 } from '@/Components/ui/table';
+import { Spinner } from '@/Components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
+import { useCompanyLookup } from '@/hooks/use-company-lookup';
 import AppLayout from '@/Layouts/AppLayout';
 import { formatDate } from '@/lib/format';
 import { gstinError, normaliseIdentifier } from '@/lib/identifiers';
 import { Link, useForm } from '@inertiajs/react';
-import { MoreHorizontalIcon, PencilIcon, PlusIcon } from 'lucide-react';
+import { MoreHorizontalIcon, PencilIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 const NONE = '__none__';
 
@@ -69,7 +73,7 @@ function Detail({ label, children, mono = false }) {
 }
 
 /** Text input bound to a useForm instance; `error` overrides the server error (client-side checks). */
-function TextField({ form, name, label, required, hint, error, ...props }) {
+function TextField({ form, name, label, required, hint, error, action, ...props }) {
     const message = form.errors[name] ?? error;
     return (
         <Field data-invalid={!!message || undefined}>
@@ -77,14 +81,17 @@ function TextField({ form, name, label, required, hint, error, ...props }) {
                 {label}
                 {required && <span className="text-destructive">*</span>}
             </FieldLabel>
-            <Input
-                id={`f-${name}`}
-                value={form.data[name] ?? ''}
-                onChange={(e) => form.setData(name, e.target.value)}
-                aria-invalid={!!message || undefined}
-                autoComplete="off"
-                {...props}
-            />
+            <div className="flex gap-2">
+                <Input
+                    id={`f-${name}`}
+                    value={form.data[name] ?? ''}
+                    onChange={(e) => form.setData(name, e.target.value)}
+                    aria-invalid={!!message || undefined}
+                    autoComplete="off"
+                    {...props}
+                />
+                {action}
+            </div>
             {hint && !message && <FieldDescription>{hint}</FieldDescription>}
             <FieldError>{message}</FieldError>
         </Field>
@@ -167,6 +174,47 @@ function GstinForm({ company, record, onDone }) {
         trade_name: record?.trade_name ?? '',
         registered_on: record?.registered_on ?? '',
     });
+    const { lookup, loading } = useCompanyLookup();
+    const [notice, setNotice] = useState(null);
+
+    const gstin = record ? record.gstin : form.data.gstin;
+    const clientError = record ? null : gstinError(form.data.gstin, company.pan);
+    const canFetch = gstin.length === 15 && !clientError;
+
+    /** Fills names and the registration date from the GST portal (explicit click, so it overwrites). */
+    const fetchDetails = async () => {
+        try {
+            const { data: found, existing } = await lookup('gstin', gstin);
+            form.setData((d) => ({
+                ...d,
+                legal_name: found.legal_name ?? d.legal_name,
+                trade_name: found.trade_name ?? d.trade_name,
+                registered_on: found.registered_on ?? d.registered_on,
+            }));
+            setNotice(
+                existing && existing.id !== company.id
+                    ? { kind: 'existing', existing }
+                    : !found.is_active
+                      ? { kind: 'status', status: found.status, cancelledOn: found.cancelled_on }
+                      : null,
+            );
+            toast.success('Details filled from the GST portal. Check them before saving.');
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+
+    const fetchButton = (
+        <Button
+            type="button"
+            variant="outline"
+            onClick={fetchDetails}
+            disabled={!canFetch || loading !== null}
+            title={canFetch ? undefined : 'Enter a valid GSTIN first'}
+        >
+            {loading ? <Spinner /> : <SearchIcon />} Fetch
+        </Button>
+    );
 
     return (
         <SheetForm
@@ -184,7 +232,10 @@ function GstinForm({ company, record, onDone }) {
             {record ? (
                 <Field>
                     <FieldLabel>GSTIN</FieldLabel>
-                    <p className="font-mono text-[13px]">{record.gstin}</p>
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="font-mono text-[13px]">{record.gstin}</p>
+                        {fetchButton}
+                    </div>
                     <FieldDescription>
                         {record.state} ({record.state_code}). A saved GSTIN can&apos;t be changed;
                         deactivate it and add the correct one.
@@ -201,9 +252,41 @@ function GstinForm({ company, record, onDone }) {
                     className="font-mono uppercase"
                     placeholder="27AAACB1234C1Z5"
                     onChange={(e) => form.setData('gstin', normaliseIdentifier(e.target.value))}
-                    error={gstinError(form.data.gstin, company.pan)}
+                    error={clientError}
                     hint="The state is taken from the first two digits."
+                    action={fetchButton}
                 />
+            )}
+            {notice && (
+                <Alert variant="destructive">
+                    {notice.kind === 'existing' ? (
+                        <>
+                            <AlertTitle>Registered to another company</AlertTitle>
+                            <AlertDescription>
+                                <span>
+                                    This GSTIN belongs to{' '}
+                                    <Link
+                                        href={route('companies.show', notice.existing.id)}
+                                        className="font-medium underline"
+                                    >
+                                        {notice.existing.name}
+                                    </Link>
+                                    .
+                                </span>
+                            </AlertDescription>
+                        </>
+                    ) : (
+                        <>
+                            <AlertTitle>GST portal status: {notice.status}</AlertTitle>
+                            <AlertDescription>
+                                {notice.cancelledOn
+                                    ? `Cancelled on ${formatDate(notice.cancelledOn)}. `
+                                    : ''}
+                                Invoices can&apos;t be raised against an inactive GSTIN.
+                            </AlertDescription>
+                        </>
+                    )}
+                </Alert>
             )}
             <TextField form={form} name="legal_name" label="Legal name" />
             <TextField form={form} name="trade_name" label="Trade name" />
@@ -508,11 +591,15 @@ export default function CompanyShow({ company, gstins, addresses, contacts, opti
 
             <Tabs value={tab} onValueChange={setTab}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                    <TabsList>
-                        <TabsTrigger value="gstins">GSTINs ({gstins.length})</TabsTrigger>
-                        <TabsTrigger value="addresses">Addresses ({addresses.length})</TabsTrigger>
-                        <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
-                    </TabsList>
+                    <div className="-mx-1 max-w-full overflow-x-auto px-1">
+                        <TabsList>
+                            <TabsTrigger value="gstins">GSTINs ({gstins.length})</TabsTrigger>
+                            <TabsTrigger value="addresses">
+                                Addresses ({addresses.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
+                        </TabsList>
+                    </div>
                     {can.update && (
                         <Button
                             variant="outline"

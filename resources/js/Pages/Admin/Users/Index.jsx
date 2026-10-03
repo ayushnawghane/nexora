@@ -33,7 +33,7 @@ export default function UsersIndex({ users, filters: initialFilters, sort, roles
                         href={route('users.edit', row.original.id)}
                         className="group block min-w-0"
                     >
-                        <div className="truncate font-medium text-foreground group-hover:text-primary">
+                        <div className="truncate font-medium text-foreground group-hover:text-brand-text">
                             {row.original.name}
                         </div>
                         <div className="truncate text-xs text-muted-foreground">

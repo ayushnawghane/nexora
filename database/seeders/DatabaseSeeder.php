@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([PermissionSeeder::class, StateSeeder::class]);
+        $this->call([PermissionSeeder::class, StateSeeder::class, TaxRateSeeder::class]);
 
         Product::query()->firstOrCreate(
             ['code' => Product::DEBENTURE_TRUSTEE],

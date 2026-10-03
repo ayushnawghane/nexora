@@ -1,4 +1,5 @@
 import { PageHeader } from '@/Components/page-header';
+import { Alert, AlertDescription, AlertTitle } from '@/Components/ui/alert';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
 import {
@@ -20,9 +21,14 @@ import {
     SelectValue,
 } from '@/Components/ui/select';
 import { Switch } from '@/Components/ui/switch';
+import { Spinner } from '@/Components/ui/spinner';
+import { useCompanyLookup } from '@/hooks/use-company-lookup';
 import AppLayout from '@/Layouts/AppLayout';
 import { cinError, describeCin, normaliseIdentifier, panError } from '@/lib/identifiers';
 import { Link, useForm } from '@inertiajs/react';
+import { SearchIcon } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 const NONE = '__none__';
 
@@ -55,6 +61,10 @@ export default function CompanyForm({ company, options }) {
         is_listed: company?.is_listed ?? false,
     });
 
+    const { lookup, loading } = useCompanyLookup();
+    // What the last registry lookup said that the user should know: a duplicate, or a struck-off company.
+    const [notice, setNotice] = useState(null);
+
     const isCompany = data.entity_type === 'company';
     const hasNumber = data.entity_type !== 'other';
     const cin = describeCin(data.cin);
@@ -80,19 +90,63 @@ export default function CompanyForm({ company, options }) {
         else post(route('companies.store'));
     };
 
-    const text = (name, label, props = {}) => (
+    /** Fills the form from the registry. An explicit click, so it overwrites what's there. */
+    const fetchDetails = async (type) => {
+        try {
+            const { data: found, existing } = await lookup(type, data[type]);
+            setData((d) =>
+                type === 'cin'
+                    ? {
+                          ...d,
+                          name: found.name,
+                          incorporated_on: found.incorporated_on ?? d.incorporated_on,
+                          category: found.category ?? d.category,
+                      }
+                    : { ...d, name: found.name },
+            );
+            setNotice(
+                existing && existing.id !== company?.id
+                    ? { kind: 'existing', existing }
+                    : found.status && !/^active$/i.test(found.status)
+                      ? { kind: 'status', status: found.status }
+                      : null,
+            );
+            toast.success(
+                `Details filled from ${type === 'cin' ? 'MCA' : 'PAN'} records. Check them before saving.`,
+            );
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+
+    const text = (name, label, props = {}, action = null) => (
         <Field data-invalid={!!fieldErrors[name] || undefined}>
             <FieldLabel htmlFor={name}>{label}</FieldLabel>
-            <Input
-                id={name}
-                value={data[name] ?? ''}
-                onChange={(e) => setData(name, e.target.value)}
-                aria-invalid={!!fieldErrors[name] || undefined}
-                autoComplete="off"
-                {...props}
-            />
+            <div className="flex gap-2">
+                <Input
+                    id={name}
+                    value={data[name] ?? ''}
+                    onChange={(e) => setData(name, e.target.value)}
+                    aria-invalid={!!fieldErrors[name] || undefined}
+                    autoComplete="off"
+                    {...props}
+                />
+                {action}
+            </div>
             <FieldError>{fieldErrors[name]}</FieldError>
         </Field>
+    );
+
+    const fetchButton = (type, enabled) => (
+        <Button
+            type="button"
+            variant="outline"
+            onClick={() => fetchDetails(type)}
+            disabled={!enabled || loading !== null}
+            title={enabled ? undefined : `Enter a valid ${type.toUpperCase()} first`}
+        >
+            {loading === type ? <Spinner /> : <SearchIcon />} Fetch
+        </Button>
     );
 
     const select = (name, label, items) => (
@@ -190,20 +244,72 @@ export default function CompanyForm({ company, options }) {
                     <CardContent>
                         <FieldGroup className="grid gap-4 sm:grid-cols-2">
                             {hasNumber &&
-                                text('cin', data.entity_type === 'llp' ? 'LLPIN' : 'CIN', {
-                                    ...identifier('cin'),
-                                    maxLength: 21,
-                                    autoFocus: !editing,
-                                    placeholder:
-                                        data.entity_type === 'llp'
-                                            ? 'AAB-1234'
-                                            : 'U65990MH2010PTC123456',
-                                })}
-                            {text('pan', 'PAN', {
-                                ...identifier('pan'),
-                                maxLength: 10,
-                                placeholder: 'AAACB1234C',
-                            })}
+                                text(
+                                    'cin',
+                                    data.entity_type === 'llp' ? 'LLPIN' : 'CIN',
+                                    {
+                                        ...identifier('cin'),
+                                        maxLength: 21,
+                                        autoFocus: !editing,
+                                        placeholder:
+                                            data.entity_type === 'llp'
+                                                ? 'AAB-1234'
+                                                : 'U65990MH2010PTC123456',
+                                    },
+                                    isCompany && fetchButton('cin', Boolean(cin)),
+                                )}
+                            {text(
+                                'pan',
+                                'PAN',
+                                {
+                                    ...identifier('pan'),
+                                    maxLength: 10,
+                                    placeholder: 'AAACB1234C',
+                                },
+                                !isCompany &&
+                                    fetchButton(
+                                        'pan',
+                                        data.pan.length === 10 &&
+                                            !panError(data.pan, data.entity_type),
+                                    ),
+                            )}
+                            {notice && (
+                                <Alert
+                                    variant={notice.kind === 'existing' ? 'destructive' : undefined}
+                                    className="sm:col-span-2"
+                                >
+                                    {notice.kind === 'existing' ? (
+                                        <>
+                                            <AlertTitle>This company already exists</AlertTitle>
+                                            <AlertDescription>
+                                                <span>
+                                                    {notice.existing.name} already has this number.{' '}
+                                                    <Link
+                                                        href={route(
+                                                            'companies.show',
+                                                            notice.existing.id,
+                                                        )}
+                                                        className="font-medium underline"
+                                                    >
+                                                        Open it
+                                                    </Link>{' '}
+                                                    instead of creating a duplicate.
+                                                </span>
+                                            </AlertDescription>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <AlertTitle>
+                                                Registry status: {notice.status}
+                                            </AlertTitle>
+                                            <AlertDescription>
+                                                Check with the team before taking on new business
+                                                from this company.
+                                            </AlertDescription>
+                                        </>
+                                    )}
+                                </Alert>
+                            )}
                             <div className="sm:col-span-2">
                                 {text('name', 'Name', { autoFocus: !editing && !hasNumber })}
                             </div>

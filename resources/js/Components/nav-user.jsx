@@ -44,7 +44,7 @@ export function NavUser({ user }) {
     const identity = (
         <>
             <Avatar className="size-8 rounded-full">
-                <AvatarFallback className="rounded-full bg-primary/15 text-xs text-primary">
+                <AvatarFallback className="rounded-full bg-primary/15 text-xs text-brand-text">
                     {initials(user.name)}
                 </AvatarFallback>
             </Avatar>

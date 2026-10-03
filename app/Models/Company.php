@@ -92,6 +92,14 @@ class Company extends Model
     }
 
     /**
+     * @return HasMany<Transaction, $this>
+     */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    /**
      * Matches name, former name, CIN, PAN or any of the company's GSTINs.
      *
      * @param  Builder<static>  $query

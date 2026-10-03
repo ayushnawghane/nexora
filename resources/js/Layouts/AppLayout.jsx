@@ -11,8 +11,9 @@ import {
 import { Separator } from '@/Components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/Components/ui/sidebar';
 import { Toaster } from '@/Components/ui/sonner';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { Fragment, useEffect } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 /**
@@ -31,13 +32,18 @@ export default function AppLayout({ title, breadcrumbs = [], actions, children }
         if (flash?.info) toast.info(flash.info);
     }, [flash]);
 
+    // DESIGN.md §5: full sidebar from 1024px, icon rail from 768px (below that it's a drawer).
+    const isDesktop = useMediaQuery('(min-width: 1024px)');
+    const [sidebarOpen, setSidebarOpen] = useState(isDesktop);
+    useEffect(() => setSidebarOpen(isDesktop), [isDesktop]);
+
     const crumbs = breadcrumbs.length ? breadcrumbs : title ? [{ title }] : [];
 
     return (
-        <SidebarProvider>
+        <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
             {title && <Head title={title} />}
             <AppSidebar />
-            <SidebarInset className="bg-background">
+            <SidebarInset className="min-w-0 bg-background">
                 <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur">
                     <SidebarTrigger className="-ml-1" />
                     <Separator

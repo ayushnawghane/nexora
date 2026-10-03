@@ -72,6 +72,8 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - ✅ App shell from the shadcn `sidebar-07` block: collapsible sidebar, breadcrumbs, flash messages shown as toasts
 - ✅ Navigation config (`resources/js/navigation.js`): items show only when their route exists and the user has the permission
 - ✅ Shared compositions: data table (server-side paging and sorting), combobox, confirm dialog, one-time password dialog
+- ✅ DESIGN.md compliance pass (2026-10-03): 36px inputs on the input surface, 2px brand focus outline, 44px touch targets on coarse pointers, card radius/border/shadow, data-table styling on every table, icon-rail sidebar between 768 and 1023px, accessible orange for link text in light mode, no sideways page scroll at any width. Upgraded to **React 19**, because CLI-generated components pass `ref` as a prop; on React 18, menus and popovers opened off-screen.
+- ✅ Verified in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no horizontal overflow, user and row menus open on-screen
 - ⬜ `/styleguide` page (local only) to review every component in both themes
 
 ### M2: Auth and access ✅
@@ -84,7 +86,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - ✅ Roles screen: list, permission matrix grouped by section, protected super-admin role, a role still in use can't be deleted
 - ✅ Permissions declared in `config/permissions.php` and synced by `PermissionSeeder`. Super-admin passes every check.
 
-### M3: Masters 🟡
+### M3: Masters ✅
 - ✅ **Generic masters engine** (`config/masters.php` → one controller, one page): list, search, status filter, sort, create/edit drawer, activate/deactivate, delete blocked while the record is in use, activity logging
 - ✅ Masters configured: departments, designations, products, verticals, vertical teams (with legal/compliance/billing emails), lead sources, arrangers, banks, contact types, transaction types, pincodes
 - ✅ `states` table seeded with the official GST state codes
@@ -95,24 +97,22 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
   - `company_contacts`: contact type, an email or mobile required, email unique per company
   - List (search by name/CIN/PAN/GSTIN), detail page with GSTIN/address/contact tabs and slide-over forms, create/edit form. Everything is deactivated, never deleted.
   - Identifier rules live in `App\Support\IndianIdentifiers`, mirrored in `resources/js/lib/identifiers.js`
-- ⬜ **CompanyLookup service** to pre-fill companies from CIN, GSTIN or PAN. A `fake` driver for local work; the Codium API driver once UAT credentials arrive.
-- ⬜ Tax settings: CGST/SGST/IGST rates and Beacon's home state code, held in the database instead of `.env`
+- ✅ **CompanyLookup service** (`App\Services\CompanyLookup`): **Fetch** buttons on the company form (CIN, or PAN for other entities) and the GSTIN form pre-fill names, dates and category. Lookups never save anything, warn about an existing company with the same number and about inactive/cancelled registrations, are cached for 24 hours and rate-limited (30/minute). `fake` driver for local work and tests; a `codium` driver built from the legacy integration, to be checked against UAT once credentials arrive.
+- ✅ **Tax settings** (Administration → Tax settings): Beacon's GSTIN (its state is the home state) and GST rates by effective date. A rate that has taken effect can't be edited or removed; new rates must be future-dated, with SGST = CGST and IGST = CGST + SGST. Standard 9% + 9% / 18% seeded from 1 July 2017.
+- ✅ **`GstCalculator`**: CGST + SGST when the place of supply is Beacon's home state, otherwise IGST. Uses the rate in force on the invoice date and `brick/math`, rounding each component to paise (half up).
 
-### M4: DT transaction (create → approval → EL) ⬜
-- Schema:
-  - `transactions` (ULID, state, EL number unique, deal code)
-  - `transaction_issue_details`
-  - `transaction_contacts`
-  - `fee_lines` and `fee_schedule_periods`
-  - `approval_requests` and `approval_votes`
-  - `engagement_letters` (versioned, `body_html` override)
-  - `letter_templates`
-  - `number_sequences`
-- Wizard: basics → contacts → issue details (sums enforced) → fees (% is of the issue size, fixing the legacy `total + total×%` bug) → schedule (verify step enforced) → review and send for approval
-- `FeeScheduleService`: a pure function that aligns periods to the financial year, half-year, quarter or month, pro-rates by days ÷ days in the year, and splits periods for escalation. Unit-tested against real legacy DT deals.
-- Approval: approvers come from permissions. Rule: head approver + at least one other, and no rejections. In-app voting plus signed, expiring email links. Each request is its own record, and votes lock once it closes.
-- EL: server checks that the transaction is approved and its schedule verified. The number is reserved with a row lock, the letter is rendered from the template (plus any per-deal override) with dompdf, and the new version is saved in one transaction.
-- Lists: drafts, pending approval, active, closed, with Excel export
+### M4: DT transaction (create → approval → EL) ✅
+- ✅ Schema: `transactions` (ULID, status state machine, unique EL number and deal code), `transaction_issue_details`, `transaction_instruments`, `transaction_contacts`, `fee_lines`, `fee_schedule_periods`, `approval_requests`, `approval_votes`, `engagement_letters` (versioned HTML snapshot + PDF), `number_sequences`
+- ✅ Wizard (`/transactions/create`): basics → contacts → issue details → fees → schedule → review. Each step saves on its own, and a step only opens once the steps before it are complete.
+  - Contacts must belong to the company, with at least one "To" that has an email. Changing the company drops them.
+  - The instrument split (NCD/OCD/CCD/MLD) must add up exactly to the base issue and the green shoe. The total is always base + green shoe.
+  - A percentage fee is of the issue size (fixes the legacy `total + total×%` bug). Fee options are enums, not editable masters.
+  - Any change to the issue or fees rebuilds the schedule and clears its verification. Submitting needs a verified schedule.
+- ✅ `FeeScheduleService`: financial-year-aligned periods (annual / half-yearly / quarterly / monthly), pro rata by days ÷ days in that FY (366 when it contains 29 Feb), inclusive day counts, compounding escalation that splits periods, advance/arrears bill dates. Reproduces 6 real legacy DT deals to the rupee. Rounding is a single setting (`config/fees.php`, whole rupees by default).
+- ✅ Approval: approvers are users with *Approve transactions*; head approvers also have *Head approver*. Approved once a head approver plus at least one other approve; any rejection (with a reason) rejects it. The submitter can't vote, and each person votes once. Requests and votes are row-locked, so simultaneous votes are safe. Each submission is its own request, kept as history. Emails are queued after commit and carry **signed, expiring, per-approver links** (GET only shows; POST votes). A rejected transaction is revised back to draft and resubmitted.
+- ✅ Engagement letter: approved + verified transactions only. The EL number `BTL/DEB/EL/{yy-yy}/{N}` comes from one row-locked sequence per financial year shared by all products; a refused issue uses up no number. Deal code `DEB/{yy-yy}/{id}`. A fee that runs from the EL date fixes the EL date. The letter is rendered from `resources/views/letters/dt-engagement.blade.php` (amounts in words, Indian grouping) to HTML + PDF (dompdf) and stored as version 1. The deal becomes **Active**.
+- ✅ Lists: drafts, pending approval, approved, active, closed, each with search and **Excel export**. Plus an Approvals inbox and a read-only transaction page with approval history and letter versions.
+- ✅ Security fix: the super-admin bypass now covers permission names only, not policy rules, so super-admins can't edit a submitted or active transaction either.
 
 ### M5: DT deal workspace and dashboard ⬜
 - Deal page tabs:
@@ -146,13 +146,13 @@ Other products, billing and invoicing, ISIN, legal and security modules, outward
 
 | Check | Result (last full run) |
 |---|---|
-| Tests | 121 passed (638 assertions) |
+| Tests | 205 passed (1300+ assertions) |
 | Pint / PHPStan level 5 | Clean |
 | ESLint / Prettier / build | Clean |
 
-All gates were run on 2026-10-03 after the company master was added.
+All gates were run on 2026-10-03 after M4 was completed.
 
-**Next step:** the CompanyLookup service and tax settings (end of M3), then M4.
+**Next step:** M5, the DT deal workspace (billing address and GST per deal, status changes with approvals, job sheet, activity) and the dashboard.
 
 ## 6. Inputs needed
 
@@ -161,12 +161,14 @@ Items marked **⏳ Pending from project owner** are waiting on the project owner
 | Item | Needed for | Status |
 |---|---|---|
 | Legacy DB copy | M6 import, fee-test fixtures | ✅ Available locally (`beacon_stack`) |
-| Codium API UAT credentials (CIN/GST/PAN lookup URL, key/JWT secret) + a sample response | Real company lookups (M3) | ⏳ Pending from project owner (fake driver until then) |
+| Codium API UAT credentials (the `CODIUM_API_*` values in `.env.example`; legacy names shown there) + a sample response | Real company lookups (M3) | ⏳ Pending from project owner (fake driver until then; set `COMPANY_LOOKUP_DRIVER=codium` once added) |
 | Mail settings (UAT SMTP / Microsoft Graph) | Approval and notification emails (M4) | ⏳ Pending from project owner |
-| Tax rates (CGST/SGST/IGST) and Beacon's own GSTIN / home state | Tax settings (M3), CGST+SGST vs IGST (M5) | ⏳ Pending from project owner |
-| EL letter wording sign-off | M4 letter templates | ⏳ Pending from project owner (starting from the current DT templates) |
-| 2–3 real DT deals (legacy `con_id`s: escalation, half-yearly, mid-year start) | Fee-schedule tests against real cases (M4) | ⏳ Pending from project owner |
-| Head approver and roles allowed to vote | Approval permissions (M4) | ⏳ Pending from project owner |
-| Go-ahead to commit and push, and the target branch | Saving the work so far to git | ⏳ Pending from project owner |
+| Beacon's own GSTIN | Home state for CGST+SGST vs IGST (entered in Tax settings) | ⏳ Pending from project owner |
+| Confirm GST rate 9% + 9% / 18% on trusteeship fees | Seeded default in Tax settings | ⏳ Pending from project owner (confirm, or give the correct rate) |
+| EL letter wording sign-off | `resources/views/letters/dt-engagement.blade.php` (draft wording in place) | ⏳ Pending from project owner |
+| 2–3 real DT deals with escalation or half-yearly billing (legacy `con_id`s) | More fee-schedule tests (6 annual legacy deals already pass) | ⏳ Pending from project owner |
+| Who the head approvers are, and which roles may vote | Assigning *Approve transactions* / *Head approver* to roles (rule built: head + 1 more, any rejection rejects) | ⏳ Pending from project owner |
+| Fee schedule conventions: round to whole rupees? A fee ends the day before start + tenure? | `config/fees.php`, `TransactionIssueDetail::maturityFrom()` (legacy was inconsistent on rounding) | ⏳ Pending from project owner (confirm, or give the rule) |
+| Go-ahead to commit and push, and the target branch | Saving the work so far to git | ✅ Push to `main` |
 | Fix for the timesheet hook (fires on every Bash command, not only after `git push`) | Developer tooling | ⏳ Pending from project owner (optional) |
 | WAMP vhost `nexora.test` | Local URL | ⬜ Optional (`php artisan serve` works) |

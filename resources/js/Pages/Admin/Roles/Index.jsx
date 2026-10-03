@@ -57,7 +57,7 @@ export default function RolesIndex({ roles, can }) {
                                     ) : (
                                         <Link
                                             href={route('roles.edit', role.id)}
-                                            className="font-medium hover:text-primary"
+                                            className="font-medium hover:text-brand-text"
                                         >
                                             {role.name}
                                         </Link>

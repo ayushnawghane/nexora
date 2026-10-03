@@ -17,7 +17,9 @@ What you see depends on your **role**. If a menu item or button mentioned here i
 7. [For administrators: roles and permissions](#7-for-administrators-roles-and-permissions)
 8. [Masters (reference lists)](#8-masters-reference-lists)
 9. [Companies](#9-companies)
-10. [Common messages and what they mean](#10-common-messages-and-what-they-mean)
+10. [For administrators: tax settings](#10-for-administrators-tax-settings)
+11. [Transactions: from draft to engagement letter](#11-transactions-from-draft-to-engagement-letter)
+12. [Common messages and what they mean](#12-common-messages-and-what-they-mean)
 
 ---
 
@@ -209,11 +211,13 @@ The list shows every client and counterparty. Search by **name, former name, CIN
    - **Other entity** (firm, trust, bank, body corporate…): no registration number. PAN is optional.
 2. CIN, PAN and GSTIN are converted to capitals and spaces are removed. Mistakes show as you type.
 3. If you give a date of incorporation for a company, its year must match the year inside the CIN.
-4. After saving, you land on the company page to add its GSTINs, addresses and contacts.
+4. **Fetch** (next to the CIN, or next to the PAN for other entities) fills the name, incorporation date and category from the government registry. Check what it filled before saving; nothing is saved until you click **Create company**. If another company in Nexora already has that number, you'll get a link to it instead of creating a duplicate.
+5. After saving, you land on the company page to add its GSTINs, addresses and contacts.
 
 ### GSTINs
 - Click **Add GSTIN** on the GSTINs tab. Nexora checks the **check digit** (so most typing mistakes are caught) and that the GSTIN was issued under **the company's PAN**. The company needs a PAN before you can add a GSTIN.
 - The **state is taken from the first two digits**; you don't pick it.
+- **Fetch** fills the legal name, trade name and registration date from the GST portal, and warns you if the registration is cancelled or suspended.
 - A saved GSTIN number **can't be edited**. If it's wrong, deactivate it and add the correct one. You can still edit its legal name, trade name and registration date.
 - A GSTIN that active addresses use can't be deactivated until those addresses are moved to another GSTIN or deactivated.
 
@@ -231,7 +235,44 @@ Companies, GSTINs, addresses and contacts are **deactivated, never deleted**, be
 
 ---
 
-## 10. Common messages and what they mean
+## 10. For administrators: tax settings
+
+**Administration → Tax settings** (needs *View tax settings*; changes need *Change GST rates and Beacon's GSTIN*).
+
+- **Beacon's GSTIN:** its state is Beacon's home state. Billing to an address in the same state carries **CGST + SGST**; anywhere else carries **IGST**. GST can't be worked out until this is set.
+- **GST rates:** each rate has an *effective from* date, and an invoice uses the rate in force on its date. To change the rate, **add a new rate** with a future date. Rates that have taken effect can't be edited or removed, because invoices already raised depend on them. A scheduled rate can be withdrawn before its date.
+- SGST must equal CGST, and IGST must equal CGST + SGST.
+
+---
+
+## 11. Transactions: from draft to engagement letter
+
+**Transactions → New transaction** (needs *Create & edit draft transactions*). Phase 1 covers Debenture Trustee deals.
+
+### The wizard
+Work through six steps. Each one saves on its own (**Save and continue**), so you can stop and come back later; drafts are listed under **Transactions → Drafts**. A step opens once the steps before it are complete.
+
+1. **Basics:** the client company, vertical team, relationship manager, signatory and origin. The company must already exist under Companies.
+2. **Contacts:** tick the company's people who should receive the letter and mark each **To** or **Cc**. At least one "To" needs an email. Missing someone? Use **Manage contacts** to add them on the company page.
+3. **Issue details:** listing, issue type, security, rating, base issue size, green shoe and tenure. Split the issue across instruments (NCD, OCD, CCD, MLD); the split must add up exactly, and the totals turn red until it does.
+4. **Fees:** the acceptance fee (one time) and the service fee (per annum), as an amount or a percentage of the issue size, with frequency, start date, advance/arrears and optional escalation.
+5. **Schedule:** Nexora builds the billing schedule. Periods follow the financial year, and part-periods are charged by days (pro rata). Check it, then click **verify**. Changing the issue or fees later clears the verification.
+6. **Review:** check everything and **Send for approval** (needs *Send transactions for approval*). The transaction can't be edited while approvers decide.
+
+### Approval
+- Approvers get an email with a personal link, and also see the request under **Approvals**. Open the transaction to approve or reject it; a rejection needs a reason.
+- It's **approved** once a head approver and at least one other approver approve. **Any rejection** sends it back: open it, click **Revise and resubmit**, make the changes and send it again. Every round of votes stays on record.
+- You can't vote on a request you submitted. Email links are personal and expire after 7 days.
+
+### Engagement letter
+Once approved, someone with *Issue engagement letters* opens the transaction and clicks **Issue letter**. This assigns the next EL number for the financial year (e.g. `BTL/DEB/EL/25-26/14`) and the deal code, creates the PDF, and moves the deal to **Active**. If a fee runs from the EL date, the EL date is fixed to that fee's approved start date. Every version of the letter is kept; open it with **Open PDF**.
+
+### Lists
+**Drafts**, **Pending approval**, **Approved**, **Active** and **Closed** are under Transactions. Each can be searched and exported to Excel with **Export**.
+
+---
+
+## 12. Common messages and what they mean
 
 | Message | Meaning / what to do |
 |---|---|
@@ -246,6 +287,14 @@ Companies, GSTINs, addresses and contacts are **deactivated, never deleted**, be
 | *This GSTIN fails its check-digit test.* | A character is mistyped. Copy the GSTIN from the GST certificate or portal. |
 | *This GSTIN belongs to PAN …, not the company's PAN …* | Either the GSTIN is another company's, or the company's PAN is wrong. |
 | *The incorporation year must match the year in the CIN.* | Check the date, or the CIN (characters 9–12 are the year). |
+| *No … record was found.* (after **Fetch**) | The registry doesn't know this number. Check it, or type the details in by hand. |
+| *The lookup service is not responding right now.* | Type the details in by hand, or try **Fetch** again later. |
+| *Too many lookups in a short time.* | Wait a minute and try again. |
+| *The instrument amounts add up to …, not the base issue size.* | Fix the split in the issue details step so it matches exactly. |
+| *Complete these steps first: …* | A wizard step is missing, or the schedule hasn't been verified. |
+| *You can't vote on a request you submitted.* | Another approver has to vote. |
+| *The … runs from the EL date and its approved schedule starts on …* | Issue the letter with that date, or revise the transaction to change the fee start date. |
+| *Tax settings are incomplete.* | Ask an administrator to set Beacon's GSTIN and a GST rate. |
 | *403 / This action is unauthorized.* | Your role doesn't allow this. Ask an administrator if you need it. |
 
 ---
