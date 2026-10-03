@@ -15,6 +15,7 @@ pest()->extend(TestCase::class)->in('Unit');
 require __DIR__.'/Support/transactions.php';
 require __DIR__.'/Support/deals.php';
 require __DIR__.'/Support/god-mode.php';
+require __DIR__.'/Support/legacy.php';
 
 /**
  * Signs in a fully set-up user (2FA confirmed and passed this session, fresh password),

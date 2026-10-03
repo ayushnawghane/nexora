@@ -141,11 +141,17 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - ✅ Wording editor: instead of TipTap (its StarterKit would strip the letter's tables, classes and page breaks), the rendered letter is edited in place in a sandboxed frame using the browser's own rich-text editing. The server sanitises the body (allow-list of text/table tags and classes; links unwrapped; no scripts or inline styles) and keeps the original `<head>`, so the letter's styles can't be changed.
 - ✅ Checked in headless Chrome at 375–1440px in both themes, including a real correction + undo and a wording save through the browser
 
-### M6: Legacy data import ⬜
-- `php artisan legacy:import {area} --dry-run`, run in this order: organisation & users → roles & permissions → masters → companies, GSTINs, addresses & contacts → DT transactions, fees, schedules, approvals & EL versions
-- Reads through Eloquent models bound to the read-only `legacy` connection. Every imported row keeps a `legacy_id`, so imports can be re-run safely.
-- Each run prints a reconciliation report: counts, fee totals and rejected rows
-- Seeds the EL number sequence from the legacy maximum for each financial year
+### M6: Legacy data import 🟡
+- ✅ `php artisan legacy:import {organisation|roles|masters|companies|all} [--dry-run]`. All selected areas run in **one DB transaction**: a failure leaves Nexora untouched, and `--dry-run` does the whole import then rolls it back (signature files aren't written). Production asks for confirmation (`--force` to skip). Imports aren't written to the activity log.
+- ✅ Reads through read-only Eloquent models (`app/Legacy/Models`, writes throw) on the `legacy` connection, which uses the MySQL user **`nexora_legacy_ro`** (SELECT only on `beacon_stack`): legacy data can't be changed, by code or by mistake.
+- ✅ Every imported row keeps `legacy_id`; re-runs update instead of duplicating. Rows created in Nexora beforehand are adopted (e.g. the seeded DEB product). Legacy rows merged into another record are kept in `legacy_aliases`, so later areas resolve them.
+- ✅ Each run prints a report (read / created / updated / unchanged / rejected, plus adjustments and totals) and saves the full JSON under `storage/app/private/legacy-import/`.
+- ✅ **organisation:** departments, designations, products, verticals, vertical teams, users (legacy password hashes kept, but everyone must change their password and set up 2FA; signatures moved to files; reporting managers and team signatories linked)
+- ✅ **roles:** roles, members and permissions through `config/legacy.php` `permission_map` (only screens with a clear Nexora equivalent; 247 legacy permissions have none and are reported)
+- ✅ **masters:** lead sources, contact types, transaction types, arrangers, banks, pincodes (state names matched to GST states)
+- ✅ **companies:** companies (same CIN entered twice → merged, 22 merges), GSTINs (repeats merged, 318), billing addresses and registered offices (city/state from the pincode or GSTIN state), contacts (unnamed mailbox contacts kept, named after their email)
+- Dry run against `beacon_stack` (2026-10-03): 288 users, 10 roles, 19,472 pincodes, 1,552 companies, 1,133 GSTINs, 3,145 billing addresses, 760 registered offices, 5,389 contacts. Rejections are data that can't be placed (e.g. 456 addresses with no company, 518 "NA" GSTINs, 197 contacts with no email or mobile), each listed with its reason.
+- ⬜ **transactions:** DT deals (2,021 in legacy) with issue details, contacts, fees, schedules, approval history, EL versions, deal status and billing; seed the EL sequence from the legacy maximum per financial year; reconciliation of fee totals
 
 ### Out of scope for Phase 1
 Other products, billing and invoicing, ISIN, legal and security modules, outward and payouts, the AIF client portal, the approver mobile app, reports and payment links.
@@ -156,7 +162,7 @@ Other products, billing and invoicing, ISIN, legal and security modules, outward
 
 | Check | Result (last full run) |
 |---|---|
-| Tests | 249 passed (1900+ assertions) |
+| Tests | 257 passed (2000+ assertions) |
 | Pint / PHPStan level 5 | Clean |
 | ESLint / Prettier / build | Clean |
 
@@ -171,7 +177,7 @@ Items marked **⏳ Pending from project owner** are waiting on the project owner
 | Item | Needed for | Status |
 |---|---|---|
 | Legacy DB copy | M6 import, fee-test fixtures | ✅ Available locally (`beacon_stack`) |
-| Codium API UAT credentials (the `CODIUM_API_*` values in `.env.example`; legacy names shown there) + a sample response | Real company lookups (M3) | ⏳ Pending from project owner (fake driver until then; set `COMPANY_LOOKUP_DRIVER=codium` once added) |
+| Codium API UAT credentials (the `CODIUM_API_*` values in `.env.example`; legacy names shown there) + a sample response | Real company lookups (M3) | ✅ Received 2026-10-03 and set in the local `.env`. Still on the fake driver: switch with `COMPANY_LOOKUP_DRIVER=codium` once a test lookup is approved (each lookup is a paid call). |
 | Mail settings (UAT SMTP / Microsoft Graph) | Approval and notification emails (M4) | ⏳ Pending from project owner |
 | Beacon's own GSTIN | Home state for CGST+SGST vs IGST (entered in Tax settings) | ⏳ Pending from project owner |
 | Confirm GST rate 9% + 9% / 18% on trusteeship fees | Seeded default in Tax settings | ⏳ Pending from project owner (confirm, or give the correct rate) |
@@ -186,4 +192,7 @@ Items marked **⏳ Pending from project owner** are waiting on the project owner
 | Does putting a **Live** deal on hold need the NOC? (legacy asks for it on every move out of Live) | `DealStatus::needsNocToLeave()` | ⏳ Pending from project owner (built as legacy: yes) |
 | Can a status change's effective date be in the future (e.g. a scheduled redemption)? | `RequestDealStatusChange` (built: no, today or earlier) | ⏳ Pending from project owner |
 | Should lists and the dashboard show only the user's vertical teams? (legacy scoped some views by team) | Deal list, dashboard | ⏳ Pending from project owner (built: everyone with the permission sees all deals) |
+| Legacy import rules for users: inactive + placeholder code `L{id}` for users without an employee code; repeated/missing emails get `user-{id}@legacy.invalid`; everyone re-sets password and 2FA | M6 organisation import | ⏳ Pending from project owner (confirm) |
+| `config/legacy.php` permission map (legacy screen permission → Nexora permission) | M6 roles import | ⏳ Pending from project owner (review the map; unmapped permissions grant nothing) |
+| Merging companies entered twice with the same CIN, and dropping invalid/repeated PANs (PAN filled from GSTIN when missing) | M6 companies import | ⏳ Pending from project owner (confirm) |
 | WAMP vhost `nexora.test` | Local URL | ⬜ Optional (`php artisan serve` works) |
