@@ -400,6 +400,38 @@ function legacySchema(): void
             $t->dateTime('verified_date')->nullable();
         });
     }
+    // Execution
+    $schema->create('poa_master', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->string('poa_name');
+        $t->string('email')->nullable();
+        $t->string('mobile')->nullable();
+        $t->date('valid_from')->nullable();
+        $t->date('valid_till')->nullable();
+        $flags($t);
+    });
+    $schema->create('execution_details', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->integer('con_id');
+        $t->integer('doc_id');
+        $t->string('exe_place')->nullable();
+        $t->date('exe_date')->nullable();
+        $t->time('exe_time')->nullable();
+        $t->string('sign_type')->nullable();
+        $t->string('sign_name')->nullable();
+        $t->integer('upload_id')->nullable();
+        $t->string('uploaded_by')->nullable();
+        $t->string('uploaded_date')->nullable();
+        $t->date('document_date')->nullable();
+        $t->date('execution_date')->nullable();
+        $t->string('comments', 1000)->nullable();
+        $t->tinyInteger('is_verified')->default(0);
+        $t->integer('verified_by')->nullable();
+        $t->dateTime('verified_datetime')->nullable();
+        $t->integer('created_by')->nullable();
+        $t->dateTime('created_date')->nullable();
+        $flags($t);
+    });
     $schema->create('pre_post_upload_map', function (Blueprint $t) {
         $t->integer('id');
         $t->string('section');

@@ -26,6 +26,9 @@ class UploadDealDocumentFile
             if (! $deal->isOpenDeal()) {
                 throw ValidationException::withMessages(['file' => 'The documents of a closed deal can\'t be changed.']);
             }
+            if ($locked->execution()->exists()) {
+                throw ValidationException::withMessages(['file' => 'This document is in execution. Take it out of execution before replacing its execution version.']);
+            }
 
             $locked->files()->whereNull('removed_at')->update(['removed_at' => now(), 'removed_by' => $actor->id]);
 

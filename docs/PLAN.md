@@ -175,8 +175,20 @@ Plan: [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md).
 - ✅ Permissions *Documents & CP/CS: maker / checker*; Stack's `draft_*`, `cp_*`, `cs_*` permissions mapped in `config/legacy.php`
 - ✅ Dashboard *Waiting on you*: CP/CS items to check, and items sent back to their maker
 - ✅ God Mode editors: legal document (name), CP/CS item (name, authority, due date, comments)
+- Local import (2026-10-04): 4,562 deal documents, 24,606 CP/CS items (9,416 verified, 4,719 awaiting check, 10,471 pending), 31,281 file records. Re-runs change nothing.
 - ✅ `legacy:import documents` (part of `all`): masters (repeated names merged), deal documents from Stack's per-deal document rows and upload mappings (newest live upload current, the rest history; one-off deal documents under *Other document*), CP/CS items from `pre_/post_documents_data` matched to the master by id or name (the ~22,000 older-ERP rows only have a name), repeated items on a deal merged with all their files, file records with copies from `LEGACY_UPLOADS_PATH` when set
 - ⬜ Owner review of the screens and the import; roles for maker / checker
+
+### M8: Execution 🟡 built, owner review pending
+- ✅ Schema: `poa_holders`, `deal_executions` (one per deal document; executed copies in `document_files`)
+- ✅ Masters: *POA holders*; the masters engine gained a **date** field type
+- ✅ Deal workspace **Execution** tab: send documents (execution version required and then locked), schedule in batches with place, date/time and signatory (Beacon authorised signatory, or POA valid on the date), signatory emailed after commit, record the executed copy (PDF), **checker ≠ uploader**, send back, take out of execution before any copy, pickup by custody. Stack's automatic move to Live is replaced by a hint to request it.
+- ✅ Permissions *Execution: send, schedule and record / checker / pickup list*; Stack's `execution_*` / `executed_*` mapped
+- ✅ Dashboard: execution checks, sent-back copies, **To sign** for Beacon signatories, **Ready for pickup** (the pickup list held back from M5)
+- ✅ God Mode editor: execution (place, dates, comments)
+- ✅ `legacy:import execution` (part of `all`): POA holders, executions (one per document: verified first, then with a copy, then latest), executed copies; Stack's mixed "External" signatory values (POA ids, user ids, "Client") resolved to POA holders by name
+- Local import (2026-10-04): 32 POA holders (+12 inactive from execution history), 4,483 executions (3,224 verified, 1,044 awaiting check, 187 scheduled, 28 to schedule), 4,266 executed copies
+- ⬜ Owner review; roles; decision on old deals in the pickup list (PHASE-2-PLAN §4 #2)
 
 ### Out of scope for Phase 1
 Other products, billing and invoicing, ISIN, legal and security modules, outward and payouts, the AIF client portal, the approver mobile app, reports and payment links.

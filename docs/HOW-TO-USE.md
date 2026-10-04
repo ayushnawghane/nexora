@@ -192,6 +192,7 @@ Notes on specific lists:
 - **Job sheet activities:** the checklist every deal's job sheet carries. *Applies to* limits an activity to listed or unlisted issues; leave it empty for every deal.
 - **Issuing authorities:** who issues a CP/CS document (Issuer, Statutory Auditor, ROC …).
 - **Legal documents:** the documents a deal can be executed under (trust deed, deed of hypothecation …), with a category and the products whose deals can use them.
+- **POA holders:** people outside Beacon who sign documents under a power of attorney, with their email and the dates their POA is valid. Only a POA valid on the execution date can be chosen.
 - **CP / CS documents:** the standard conditions precedent and subsequent, with their issuing authority. Tick the kinds of issue (listed/unlisted, secured/unsecured) a document is **suggested** for; any document can still be added to any deal.
 
 ### Deactivate vs delete
@@ -283,7 +284,7 @@ Once approved, someone with *Issue engagement letters* opens the transaction and
 
 ## 12. Deals: the deal workspace
 
-**Deals** in the sidebar (needs *View deals*). The list shows every transaction whose engagement letter has been issued. Search by company, CIN, EL number or deal code, and filter by status. Open a deal to see its workspace, one tab per area. Tabs for the later Phase 2 modules (Execution, Security, ISIN, Covenants, Credit rating, Outward, Invoices) are placeholders for now.
+**Deals** in the sidebar (needs *View deals*). The list shows every transaction whose engagement letter has been issued. Search by company, CIN, EL number or deal code, and filter by status. Open a deal to see its workspace, one tab per area. Tabs for the later Phase 2 modules (Security, ISIN, Covenants, Credit rating, Outward, Invoices) are placeholders for now.
 
 ### Overview
 The EL number, deal code, issue and owners at a glance, and every version of the engagement letter. **Fees, schedule and approval** opens the full transaction record.
@@ -326,6 +327,16 @@ Three lists: the deal's **legal documents**, its **conditions precedent (CP)** a
 - A sent-back item stays sent back while you fix it: remove the wrong file, upload the right one, and it goes for checking again.
 - From the **⋯** menu: **Set due date**, **Mark not applicable** (with a reason; the files stay on record), or **Remove**, which is only for an item added by mistake with no files ever uploaded.
 
+### Execution
+Getting the deal's documents signed. Sending, scheduling and recording need *Execution: send, schedule and record*; verifying needs *Execution: checker*; the pickup needs *Execution: pickup list*.
+1. **Send for execution:** choose documents whose execution version is uploaded on the Documentation tab. While a document is in execution, its execution version can't be replaced.
+2. **Schedule:** tick the documents, enter the **place**, **date and time**, and the **signatory**: a Beacon authorised signatory, or a POA holder whose POA is valid on that date. The signatory is emailed the list (a Beacon signatory also sees it on their dashboard as *To sign*). You can reschedule until the executed copy is uploaded.
+3. **Record execution:** upload the **executed copy** (PDF, up to 20 MB) with the date it was executed (not in the future), the document date and any comments. This sends it for checking.
+4. A **checker** clicks **Verify**, or **Send back** with what needs fixing. **The checker can never be the person who uploaded the copy.** A sent-back document is recorded again with a new copy; the old one stays in the history.
+- **Take out of execution** (✕) is possible until an executed copy has been uploaded.
+- When every document is verified, the tab suggests requesting the move to **Live** on the Status tab. (Stack moved the deal to Live by itself; in Nexora the move still goes through the status approval.)
+- **Pickup:** once every document in execution is verified, the deal appears on the custody team's dashboard as *Ready for pickup*. **Mark picked up** records who collected them and when.
+
 ### Job sheet
 The checklist of activities for the deal (from *Masters → Job sheet activities*).
 - The **maker** (*Job sheet: maker*) clicks **Record**, enters the date the item was received and a comment, and sends it for checking.
@@ -333,7 +344,7 @@ The checklist of activities for the deal (from *Masters → Job sheet activities
 - A sent-back entry can be corrected and resubmitted. A verified entry is final.
 
 ### Activity
-Everything that happened on the deal, newest first: status changes, billing changes, job sheet entries, documents and CP/CS items, with who did it and when.
+Everything that happened on the deal, newest first: status changes, billing changes, job sheet entries, documents, CP/CS items and executions, with who did it and when.
 
 ---
 
@@ -341,7 +352,7 @@ Everything that happened on the deal, newest first: status changes, billing chan
 
 **Dashboard** is the first page after sign-in.
 - **Headline numbers** (if you can see deals or transactions): open deals, live deals, deals opened this financial year, issue size under trusteeship, drafts and transactions pending approval. Click a number to open the matching list.
-- **Waiting on you:** transactions to approve, deal status changes waiting for your team, job sheet entries and CP/CS items to check, and your entries and items that were sent back. Oldest first; click one to go straight to it.
+- **Waiting on you:** transactions to approve, deal status changes waiting for your team, job sheet entries, CP/CS items and executed copies to check, your work that was sent back, documents you sign for Beacon, and (for custody) deals ready for pickup. Oldest first; click one to go straight to it.
 
 ---
 
@@ -349,7 +360,7 @@ Everything that happened on the deal, newest first: status changes, billing chan
 
 **Administration → God Mode** (super-admins only). Corrects any business record when the normal screens can't, for example a deal that's already active or a letter that went out with a mistake. If you entered your 2FA code more than 15 minutes ago, you're asked for a fresh one first.
 
-- **Find the record:** search by company name, CIN, PAN, GSTIN, EL number (including old, retired ones) or deal code. A company page lists its GSTINs, addresses, contacts and transactions; a deal page lists its basics, letter contacts, issue details, fees, billing, status, job sheet, legal documents and CP/CS items. For documents you can correct the name; for CP/CS items the name, issuing authority, due date and comments (their status and files stay as they happened).
+- **Find the record:** search by company name, CIN, PAN, GSTIN, EL number (including old, retired ones) or deal code. A company page lists its GSTINs, addresses, contacts and transactions; a deal page lists its basics, letter contacts, issue details, fees, billing, status, job sheet, legal documents, CP/CS items and executions. For documents you can correct the name; for CP/CS items the name, issuing authority, due date and comments; for executions the place, dates and comments (status, signatory and files stay as they happened).
 - **Correct it:** click **Correct**, change the values and give a **reason**. The values are checked exactly as on the normal screen, so God Mode can't save anything the regular form would refuse. If someone else changed the record after you opened the page, reload and try again.
 - **Undo:** each correction in the **Change history** has an **Undo** button. It puts the old values back (checked against today's rules) and is refused if the record has changed since. The undo is logged too. Some changes can't be undone this way (a forced status change, the first fees on a deal); make a new correction instead.
 - **Follow-ups:** correcting the issue or fees rebuilds the fee schedule. Check it on the normal view, then click **Verify schedule**. If data printed in the letter changed after its latest version, you're told the letter may be out of date.
@@ -372,6 +383,7 @@ At go-live, users, roles, masters, companies, Debenture Trustee deals and their 
 - **Pending status changes:** deals that were waiting in Stack for redemption, closure or cancellation approval arrive at their current status with the request open. Management and Accounts approve them on the deal's Status tab.
 - **Fees and schedules:** billed periods are exactly as Stack billed them. Deals whose fee setup in Stack was incomplete come without fees; set them up through God Mode if needed.
 - **Documentation:** each deal's legal documents (with supplements, amendments and copies) and its CP/CS items arrive with their status and files. Files show **(not copied from Stack yet)** until the files are brought over. Items Stack's older system listed twice on a deal are merged into one, keeping all files. Stack's "WIP" items are *Awaiting check*.
+- **Execution:** each document's execution comes over with its schedule, signatory, executed copy and verification. Where Stack had several execution rows for one document, the verified one (or the latest) is kept. Stack's "Client" signatory and POA holders who only appear in executions are listed under *Masters → POA holders* (the latter inactive).
 - **Placeholders:** a user email like `user-123@legacy.invalid` means Stack had no usable email for that person. Ask an administrator to correct it.
 
 ---

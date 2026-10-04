@@ -14,6 +14,7 @@ use App\Http\Controllers\Deals\DealBillingController;
 use App\Http\Controllers\Deals\DealConditionController;
 use App\Http\Controllers\Deals\DealController;
 use App\Http\Controllers\Deals\DealDocumentController;
+use App\Http\Controllers\Deals\DealExecutionController;
 use App\Http\Controllers\Deals\DealStatusController;
 use App\Http\Controllers\Deals\JobSheetController;
 use App\Http\Controllers\GodMode\GodModeController;
@@ -103,6 +104,14 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
             Route::put('{condition}/due-date', 'dueDate')->name('due-date');
             Route::post('{condition}/waive', 'waive')->name('waive');
             Route::delete('{condition}', 'destroy')->name('destroy');
+        });
+        Route::controller(DealExecutionController::class)->prefix('{transaction}/executions')->name('executions.')->group(function () {
+            Route::post('/', 'store')->name('store');
+            Route::post('schedule', 'schedule')->name('schedule');
+            Route::post('pick-up', 'pickUp')->name('pick-up');
+            Route::post('{execution}/record', 'record')->name('record');
+            Route::post('{execution}/check', 'check')->name('check');
+            Route::delete('{execution}', 'destroy')->name('destroy');
         });
     });
     Route::prefix('deal-status-requests/{statusRequest}')->name('deals.status.')->controller(DealStatusController::class)->group(function () {

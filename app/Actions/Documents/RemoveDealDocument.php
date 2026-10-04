@@ -23,6 +23,9 @@ class RemoveDealDocument
             if (! $deal->isOpenDeal()) {
                 throw ValidationException::withMessages(['document' => 'The documents of a closed deal can\'t be changed.']);
             }
+            if ($locked->execution()->exists()) {
+                throw ValidationException::withMessages(['document' => 'This document is in execution, so it can\'t be removed.']);
+            }
             if ($locked->currentFile()->exists()) {
                 throw ValidationException::withMessages(['document' => 'Remove the uploaded file before removing the document.']);
             }

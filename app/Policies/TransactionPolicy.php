@@ -68,4 +68,19 @@ class TransactionPolicy
     {
         return $actor->can('deals.documents.verify') && $transaction->isOpenDeal();
     }
+
+    public function manageExecution(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.execution.manage') && $transaction->isOpenDeal();
+    }
+
+    public function verifyExecution(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.execution.verify') && $transaction->isOpenDeal();
+    }
+
+    public function custody(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.execution.custody') && $transaction->isDeal();
+    }
 }

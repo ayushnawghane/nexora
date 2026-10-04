@@ -151,7 +151,11 @@ function MasterForm({ master, schema, record, onDone }) {
                                 ) : (
                                     <Input
                                         id={id}
-                                        type={field.type === 'email' ? 'email' : 'text'}
+                                        type={
+                                            field.type === 'email' || field.type === 'date'
+                                                ? field.type
+                                                : 'text'
+                                        }
                                         value={data[field.name] ?? ''}
                                         onChange={(e) => setData(field.name, e.target.value)}
                                         aria-invalid={!!error || undefined}

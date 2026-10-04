@@ -336,6 +336,14 @@ class Transaction extends Model
         return $this->hasMany(DealCondition::class);
     }
 
+    /**
+     * @return HasMany<DealExecution, $this>
+     */
+    public function executions(): HasMany
+    {
+        return $this->hasMany(DealExecution::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

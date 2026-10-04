@@ -47,6 +47,13 @@ return [
         'cp_verify' => ['deals.view', 'deals.documents.verify'],
         'cs_verify' => ['deals.view', 'deals.documents.verify'],
 
+        // Execution
+        'execution_view' => ['deals.view'],
+        'execution_add' => ['deals.view', 'deals.execution.manage'],
+        'execution_edit' => ['deals.view', 'deals.execution.manage'],
+        'executed_delete' => ['deals.view', 'deals.execution.manage'],
+        'executed_verify' => ['deals.view', 'deals.execution.verify'],
+
         // Companies and masters
         'master' => ['masters.view', 'masters.manage', 'companies.view', 'companies.manage'],
     ],

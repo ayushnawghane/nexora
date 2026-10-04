@@ -44,6 +44,9 @@ return [
                 'deals.jobsheet.check' => 'Job sheet: checker',
                 'deals.documents.manage' => 'Documents & CP/CS: maker (add, upload, remove)',
                 'deals.documents.verify' => 'Documents & CP/CS: checker (verify, send back)',
+                'deals.execution.manage' => 'Execution: send, schedule and record executed copies',
+                'deals.execution.verify' => 'Execution: checker (verify, send back)',
+                'deals.execution.custody' => 'Execution: pickup list (custody of executed documents)',
             ],
         ],
         'companies' => [

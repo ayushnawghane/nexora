@@ -318,7 +318,9 @@ class DocumentsImporter extends Importer
         $existing = DealDocument::withTrashed()->where('legacy_id', $row->id)->first();
         $taken = DealDocument::withTrashed()->where('transaction_id', $deal->id)->where('legal_document_type_id', $typeId)
             ->where('kind', $kind)->when($existing, fn ($q) => $q->whereKeyNot($existing->id))->pluck('sequence')->all();
-        if (in_array($sequence, $taken, true)) {
+        if (in_array($sequence, $taken, true) && $existing && ! in_array($existing->sequence, $taken, true)) {
+            $sequence = $existing->sequence; // renumbered on an earlier run: keep that number
+        } elseif (in_array($sequence, $taken, true)) {
             $next = max($taken) + 1;
             $this->report->warn('deal documents', $row->id, "{$name}: number {$sequence} is used twice on the deal in Stack; numbered {$next}.");
             $sequence = $next;

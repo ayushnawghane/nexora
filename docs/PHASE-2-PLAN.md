@@ -51,7 +51,11 @@ The original scope, for reference:
 - Deal workspace: the *Documentation* placeholder tab becomes real (sub-tabs Pre · Post · CP/CS · Legal compliance · Due diligence) plus a progress meter on Overview.
 - Import: document master, checklist rows and file records. Files are attached from `LEGACY_UPLOADS_PATH`, the same folder the EL PDFs need.
 
-### M8: Execution (M)
+### M8: Execution (M) 🟡 built, owner review pending (2026-10-04)
+
+**Built:** POA holders master (masters engine gained a date field); per-document execution: send (execution version required, locked while in execution), schedule in batches (place, date/time, internal authorised signatory or POA valid on the date; signatory emailed after commit, no public upload link as Stack had), record the executed copy (PDF, dates, comments), checker ≠ uploader verification with send-back, take out of execution before any copy; *suggest Live* hint instead of Stack's automatic move to Live; pickup list on the dashboard and *Mark picked up*; dashboard *To sign*, checks and sent-back items; God Mode editor; `legacy:import execution`. Not built from the original scope: the annexure email on DTD upload and the documents ZIP (wait for mail settings / owner confirmation); **due diligence** (annexures A/B, ROC search, security cover, NOC) moves to **M9**, next to the security it describes.
+
+The original scope, for reference:
 - **Executed documents:** for each document, the execution date, place, stamp duty and the executing parties (asset owners from `executed_asset_owner_data`). The executed copy is uploaded and verified.
 - **Internal signatories:** Beacon signatories chosen from users marked *authorised signatory* (already imported with their signature files).
 - **Execution email** to the deal team and the client contacts, with an annexure. It's queued after commit and logged.
@@ -111,7 +115,7 @@ Compliance and monitoring (QCR, monthly/CTR, CDD/KYC, covenants, credit ratings)
 | # | Question | Needed for |
 |---|---|---|
 | 1 | Stack's document masters were imported as they are (143 legal documents, 49 CP + 19 CS documents after merging repeated names). Clean-up can happen in *Masters*. Who makes and who checks documents (roles for *Documents & CP/CS: maker / checker*)? | M7 |
-| 2 | Must execution be complete before a deal can move Documentation → Live? | M8 |
+| 2 | Must execution be complete before a deal can move Documentation → Live? (Built: the Execution tab suggests it; nothing blocks or moves it.) Stack's custody table (`stock_holding_data`) is empty in the local copy, so imported deals with every document verified show as *Ready for pickup*: mark the old ones picked up, or should the import do it? | M8 |
 | 3 | Must all securities be satisfied before a deal can be Redeemed / Closed, or is that only a warning? | M9 |
 | 4 | Which Stack schedule tables are current: `mon_paymt_*_sch` or `…_new`? Which day-count conventions are used in practice? | M10 |
 | 5 | Who receives ISIN payment reminders, and how many days ahead? | M10 |

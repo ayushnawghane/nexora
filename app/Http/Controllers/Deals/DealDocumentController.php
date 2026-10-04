@@ -12,6 +12,7 @@ use App\Http\Requests\Deals\Documents\DealDocumentFileRequest;
 use App\Http\Requests\Deals\Documents\DealDocumentStoreRequest;
 use App\Models\DealCondition;
 use App\Models\DealDocument;
+use App\Models\DealExecution;
 use App\Models\DocumentFile;
 use App\Models\LegalDocumentType;
 use App\Models\Transaction;
@@ -56,7 +57,8 @@ class DealDocumentController extends Controller
 
     public function removeFile(Request $request, Transaction $transaction, DocumentFile $file, RemoveDocumentFile $remove): RedirectResponse
     {
-        $this->authorize('manageDocuments', $transaction);
+        // Executed copies belong to the execution team; everything else to the document makers.
+        $this->authorize($file->attachable_type === DealExecution::class ? 'manageExecution' : 'manageDocuments', $transaction);
         abort_unless($this->dealOf($file) === $transaction->id, 404);
 
         $remove->handle($file, $request->user());
@@ -76,12 +78,13 @@ class DealDocumentController extends Controller
         return Storage::disk('local')->download((string) $file->path, $file->original_name);
     }
 
-    /** The deal a file belongs to, through its document or CP/CS item (removed documents included). */
+    /** The deal a file belongs to, through its document, CP/CS item or execution (removed documents included). */
     private function dealOf(DocumentFile $file): ?int
     {
         return match ($file->attachable_type) {
             DealDocument::class => DealDocument::withTrashed()->whereKey($file->attachable_id)->value('transaction_id'),
             DealCondition::class => DealCondition::query()->whereKey($file->attachable_id)->value('transaction_id'),
+            DealExecution::class => DealExecution::query()->whereKey($file->attachable_id)->value('transaction_id'),
             default => null,
         };
     }

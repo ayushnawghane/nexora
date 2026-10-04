@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Deals;
 use App\Enums\ConditionStatus;
 use App\Enums\DealDocumentKind;
 use App\Enums\DealStatus;
+use App\Enums\ExecutionStatus;
 use App\Enums\JobSheetStatus;
+use App\Enums\SignatoryType;
 use App\Enums\StatusApprovalTeam;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyAddress;
@@ -15,6 +17,7 @@ use App\Models\ConditionDocument;
 use App\Models\DealBilling;
 use App\Models\DealCondition;
 use App\Models\DealDocument;
+use App\Models\DealExecution;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealStatusChange;
 use App\Models\DealStatusRequest;
@@ -24,6 +27,7 @@ use App\Models\EngagementLetter;
 use App\Models\IssuingAuthority;
 use App\Models\JobSheetActivity;
 use App\Models\LegalDocumentType;
+use App\Models\PoaHolder;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Tax\GstCalculator;
@@ -130,6 +134,7 @@ class DealController extends Controller
             'status' => $this->status($transaction, $user),
             'jobSheet' => $this->jobSheet($transaction, $user),
             'documentation' => $this->documentation($transaction, $user),
+            'execution' => $this->execution($transaction, $user),
             'activity' => $this->activity($transaction),
             'can' => [
                 'editBilling' => $user->can('editDeal', $transaction),
@@ -138,6 +143,9 @@ class DealController extends Controller
                 'checkJobSheet' => $user->can('checkJobSheet', $transaction),
                 'manageDocuments' => $user->can('manageDocuments', $transaction),
                 'verifyDocuments' => $user->can('verifyDocuments', $transaction),
+                'manageExecution' => $user->can('manageExecution', $transaction),
+                'verifyExecution' => $user->can('verifyExecution', $transaction),
+                'custody' => $user->can('custody', $transaction),
             ],
         ]);
     }
@@ -358,7 +366,7 @@ class DealController extends Controller
 
         $kindOrder = array_flip(array_map(fn (DealDocumentKind $k) => $k->value, DealDocumentKind::cases()));
         $documents = $deal->dealDocuments()
-            ->with(['type:id,name,category', 'creator:id,name', 'files' => fn ($q) => $q->with($fileWith)])
+            ->with(['type:id,name,category', 'creator:id,name', 'execution:id,deal_document_id,status', 'files' => fn ($q) => $q->with($fileWith)])
             ->get()
             ->sortBy([
                 fn (DealDocument $a, DealDocument $b) => strcasecmp($a->type->name, $b->type->name),
@@ -382,6 +390,8 @@ class DealController extends Controller
                     'current' => $current?->present(),
                     'history' => $d->files->reject(fn (DocumentFile $f) => $current !== null && $f->is($current))
                         ->map(fn (DocumentFile $f) => $f->present())->values(),
+                    'in_execution' => $d->execution !== null,
+                    'execution_label' => $d->execution?->status->label(),
                 ];
             });
 
@@ -443,6 +453,83 @@ class DealController extends Controller
     }
 
     /**
+     * The deal's documents in execution, the documents ready to send, and the choices for scheduling.
+     *
+     * @return array<string, mixed>
+     */
+    private function execution(Transaction $deal, User $user): array
+    {
+        $fileWith = ['uploader:id,name', 'remover:id,name'];
+        $executions = $deal->executions()
+            ->with(['document.type:id,name', 'signatoryUser:id,name', 'poaHolder:id,name', 'uploader:id,name', 'checker:id,name', 'pickedUpBy:id,name',
+                'files' => fn ($q) => $q->with($fileWith)])
+            ->orderBy('id')->get();
+
+        $rows = $executions->map(function (DealExecution $e) use ($user) {
+            $current = $e->files->first(fn (DocumentFile $f) => $f->removed_at === null);
+
+            return [
+                'id' => $e->id,
+                'document' => $e->document->name,
+                'kind_label' => $e->document->kind->label(),
+                'status' => $e->status->value,
+                'status_label' => $e->status->label(),
+                'status_tone' => $e->status->tone(),
+                'place' => $e->place,
+                'scheduled_at' => $e->scheduled_at?->format('Y-m-d\TH:i'),
+                'signatory' => $e->signatoryName(),
+                'signatory_type' => $e->signatory_type?->value,
+                'signatory_type_label' => $e->signatory_type?->label(),
+                'document_date' => $e->document_date?->toDateString(),
+                'executed_on' => $e->executed_on?->toDateString(),
+                'comments' => $e->comments,
+                'uploaded_by' => $e->uploader?->name,
+                'uploaded_at' => $e->uploaded_at?->toIso8601String(),
+                'checker' => $e->checker?->name,
+                'checker_comment' => $e->checker_comment,
+                'checked_at' => $e->checked_at?->toIso8601String(),
+                'picked_up_by' => $e->pickedUpBy?->name,
+                'picked_up_at' => $e->picked_up_at?->toIso8601String(),
+                'current' => $current?->present(),
+                'history' => $e->files->reject(fn (DocumentFile $f) => $current !== null && $f->is($current))->map(fn (DocumentFile $f) => $f->present())->values(),
+                'can_schedule' => $e->status->canSchedule(),
+                'can_record' => $e->status->canRecord(),
+                'can_check' => $e->status === ExecutionStatus::Executed && $e->uploaded_by !== $user->id,
+                'is_mine' => $e->uploaded_by === $user->id,
+                'can_withdraw' => $e->status->canSchedule() && $e->files->isEmpty(),
+            ];
+        });
+
+        $allVerified = $executions->isNotEmpty() && $executions->every(fn (DealExecution $e) => $e->status === ExecutionStatus::Verified);
+
+        return [
+            'executions' => $rows,
+            'ready' => $deal->dealDocuments()->whereDoesntHave('execution')->whereHas('currentFile')->orderBy('name')->get(['id', 'name'])
+                ->map(fn (DealDocument $d) => ['value' => $d->id, 'label' => $d->name]),
+            'pickup' => [
+                'ready' => $allVerified && $executions->contains(fn (DealExecution $e) => $e->picked_up_at === null),
+                'all_picked_up' => $allVerified && $executions->every(fn (DealExecution $e) => $e->picked_up_at !== null),
+            ],
+            // Stack moved a deal to Live by itself once its key document was verified; here the move
+            // still goes through the status approval, so the tab only points to it.
+            'suggest_live' => $allVerified && in_array($deal->deal_status, [DealStatus::Preliminary, DealStatus::Documentation], true),
+            'options' => [
+                'types' => SignatoryType::options(),
+                'signatories' => User::query()->where('is_active', true)->where('is_authorised_signatory', true)->orderBy('name')->get(['id', 'name'])
+                    ->map(fn (User $u) => ['value' => $u->id, 'label' => $u->name]),
+                'poa_holders' => PoaHolder::query()->active()->orderBy('name')->get(['id', 'name', 'valid_from', 'valid_till'])
+                    ->map(fn (PoaHolder $p) => [
+                        'value' => $p->id,
+                        'label' => $p->name,
+                        'valid_from' => $p->valid_from?->toDateString(),
+                        'valid_till' => $p->valid_till?->toDateString(),
+                        'description' => $p->valid_till ? 'Valid till '.$p->valid_till->format('d M Y') : null,
+                    ]),
+            ],
+        ];
+    }
+
+    /**
      * Activity log entries for the deal, its billing and its job sheet, plus status changes, newest first.
      *
      * @return list<array<string, mixed>>
@@ -455,6 +542,7 @@ class DealController extends Controller
             DealJobSheetEntry::class => $deal->jobSheetEntries()->pluck('id')->all(),
             DealDocument::class => $deal->dealDocuments()->withTrashed()->pluck('id')->all(),
             DealCondition::class => $deal->conditions()->pluck('id')->all(),
+            DealExecution::class => $deal->executions()->pluck('id')->all(),
         ];
 
         $logs = Activity::query()
@@ -476,6 +564,7 @@ class DealController extends Controller
                     DealJobSheetEntry::class => 'Job sheet',
                     DealDocument::class => 'Documents',
                     DealCondition::class => 'CP/CS',
+                    DealExecution::class => 'Execution',
                     default => 'Transaction',
                 },
                 'event' => $a->event ?? $a->description,

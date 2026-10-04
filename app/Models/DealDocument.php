@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\DealDocumentKind;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -57,6 +58,16 @@ class DealDocument extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * The document's execution, once it has been sent for execution.
+     *
+     * @return HasOne<DealExecution, $this>
+     */
+    public function execution(): HasOne
+    {
+        return $this->hasOne(DealExecution::class);
     }
 
     /**

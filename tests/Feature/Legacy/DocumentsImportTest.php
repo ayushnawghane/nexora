@@ -3,13 +3,17 @@
 use App\Enums\ConditionStage;
 use App\Enums\ConditionStatus;
 use App\Enums\DealDocumentKind;
+use App\Enums\ExecutionStatus;
 use App\Enums\LegalDocumentCategory;
+use App\Enums\SignatoryType;
 use App\Models\ConditionDocument;
 use App\Models\DealCondition;
 use App\Models\DealDocument;
+use App\Models\DealExecution;
 use App\Models\DocumentFile;
 use App\Models\IssuingAuthority;
 use App\Models\LegalDocumentType;
+use App\Models\PoaHolder;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\User;
@@ -172,4 +176,52 @@ test('files are copied from the uploads copy when one is configured', function (
     Storage::disk('local')->assertExists($dtd->currentFile->path);
 
     @unlink("{$root}/documents/dtd-executed.pdf");
+});
+
+test('POA holders and executions come over, one per document, with their executed copies', function () {
+    legacyRows('poa_master', [
+        ['id' => 1, 'poa_name' => 'Ravi POA', 'email' => 'RAVI@poa.test', 'mobile' => '98200 12345', 'valid_from' => '2024-01-01', 'valid_till' => '2026-12-31'],
+        ['id' => 2, 'poa_name' => 'Bad Email POA', 'email' => 'not-an-email'],
+    ]);
+    legacyRows('upload_file', [['id' => 7301, 'name' => 'DTD signed.pdf', 'path' => 'execution/dtd-signed.pdf', 'created_by' => 111]]);
+    legacyRows('execution_details', [
+        // Two rows for the trust deed: the verified one wins.
+        ['id' => 1, 'con_id' => 5001, 'doc_id' => 9, 'exe_place' => 'Mumbai', 'exe_date' => '2025-05-20', 'exe_time' => '11:00:00', 'sign_type' => 'Internal', 'sign_name' => '112'],
+        ['id' => 2, 'con_id' => 5001, 'doc_id' => 9, 'exe_place' => 'Mumbai', 'exe_date' => '2025-05-21', 'exe_time' => '12:00:00', 'sign_type' => 'External', 'sign_name' => '1',
+            'upload_id' => 7301, 'uploaded_by' => '111', 'uploaded_date' => '2025-05-22 10:00:00', 'execution_date' => '2025-05-21', 'is_verified' => 1, 'verified_by' => 112, 'verified_datetime' => '2025-05-23 10:00:00'],
+        // The supplement (a per-deal document), scheduled only.
+        ['id' => 3, 'con_id' => 5001, 'doc_id' => 501, 'exe_place' => 'Pune', 'exe_date' => '2025-06-01', 'sign_type' => 'Internal', 'sign_name' => '111'],
+        // Removed in Stack.
+        ['id' => 4, 'con_id' => 5001, 'doc_id' => 14, 'is_active' => 0],
+    ]);
+
+    $this->artisan('legacy:import', ['area' => 'all'])->assertSuccessful();
+
+    expect(PoaHolder::query()->orderBy('name')->get(['name', 'email', 'mobile'])->toArray())->toBe([
+        ['name' => 'Bad Email POA', 'email' => null, 'mobile' => null],
+        ['name' => 'Ravi POA', 'email' => 'ravi@poa.test', 'mobile' => '9820012345'],
+    ]);
+
+    $deal = Transaction::query()->where('legacy_id', 5001)->sole();
+    expect($deal->executions()->count())->toBe(2);
+
+    $dtd = DealExecution::query()->where('legacy_id', 2)->sole();
+    expect($dtd->status)->toBe(ExecutionStatus::Verified)
+        ->and($dtd->document->kind)->toBe(DealDocumentKind::Standard)
+        ->and($dtd->signatory_type)->toBe(SignatoryType::External)
+        ->and($dtd->poaHolder->name)->toBe('Ravi POA')
+        ->and($dtd->scheduled_at->format('Y-m-d H:i'))->toBe('2025-05-21 12:00')
+        ->and($dtd->executed_on->toDateString())->toBe('2025-05-21')
+        ->and($dtd->checker_id)->toBe(User::query()->where('legacy_id', 112)->value('id'))
+        ->and($dtd->currentFile->original_name)->toBe('DTD signed.pdf');
+
+    $supplement = DealExecution::query()->where('legacy_id', 3)->sole();
+    expect($supplement->status)->toBe(ExecutionStatus::Scheduled)
+        ->and($supplement->document->legacy_id)->toBe(501)
+        ->and($supplement->signatoryUser->legacy_id)->toBe(111);
+
+    // Running it again changes nothing.
+    $before = [DealExecution::query()->count(), DocumentFile::query()->count()];
+    $this->artisan('legacy:import', ['area' => 'execution'])->assertSuccessful();
+    expect([DealExecution::query()->count(), DocumentFile::query()->count()])->toBe($before);
 });

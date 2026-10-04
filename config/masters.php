@@ -14,6 +14,7 @@ use App\Models\JobSheetActivity;
 use App\Models\LeadSource;
 use App\Models\LegalDocumentType;
 use App\Models\Pincode;
+use App\Models\PoaHolder;
 use App\Models\Product;
 use App\Models\State;
 use App\Models\TransactionType;
@@ -25,7 +26,7 @@ use App\Models\VerticalTeam;
 | Config-driven masters. Each entry is served by the generic MasterController and Masters/Show page.
 |
 | fields.<attribute>:
-|   type        text | email | select (belongsTo) | multiselect (belongsToMany) | enum | boolean (a checkbox)
+|   type        text | email | select (belongsTo) | multiselect (belongsToMany) | enum | boolean (a checkbox) | date
 |   rules       validation rules (uniqueness is added automatically when unique = true)
 |   unique      enforce uniqueness (ignoring soft-deleted rows is NOT done: the DB index is the authority)
 |   transform   upper | lower — applied before validation
@@ -194,6 +195,20 @@ return [
             'unique_together' => [['name', 'stage']],
             'dependents' => ['dealConditions'],
             'default_sort' => 'name',
+        ],
+        'poa-holders' => [
+            'group' => 'deals', 'label' => 'POA holders', 'singular' => 'POA holder',
+            'model' => PoaHolder::class,
+            'fields' => [
+                'name' => $name(),
+                'email' => ['label' => 'Email', 'type' => 'email', 'rules' => ['nullable', 'email:rfc', 'max:255'], 'transform' => 'lower', 'list' => true, 'search' => true,
+                    'hint' => 'Execution instructions are emailed here.'],
+                'mobile' => ['label' => 'Mobile', 'type' => 'text', 'rules' => ['nullable', 'string', 'regex:/^\+?[0-9]{10,15}$/']],
+                'valid_from' => ['label' => 'Valid from', 'type' => 'date', 'rules' => ['nullable'], 'list' => true],
+                'valid_till' => ['label' => 'Valid till', 'type' => 'date', 'rules' => ['nullable', 'after_or_equal:valid_from'], 'list' => true, 'sortable' => true,
+                    'hint' => 'Only a POA valid on the execution date can be chosen as a signatory.'],
+            ],
+            'dependents' => ['executions'],
         ],
     ],
 ];

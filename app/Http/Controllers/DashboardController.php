@@ -5,18 +5,21 @@ namespace App\Http\Controllers;
 use App\Enums\ApprovalStatus;
 use App\Enums\ConditionStatus;
 use App\Enums\DealStatus;
+use App\Enums\ExecutionStatus;
 use App\Enums\JobSheetStatus;
 use App\Enums\StatusApprovalTeam;
 use App\Enums\StatusRequestState;
 use App\Enums\TransactionStatus;
 use App\Models\ApprovalRequest;
 use App\Models\DealCondition;
+use App\Models\DealExecution;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealStatusRequest;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\FinancialYear;
 use Brick\Math\BigDecimal;
+use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -24,7 +27,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Headline numbers and the signed-in user's work queue (votes, status changes, job sheet and CP/CS checks). Each section only appears for people with
+ * Headline numbers and the signed-in user's work queue (votes, status changes, job sheet, CP/CS and
+ * execution checks, documents to sign, and the custody pickup list). Each section only appears for people with
  * the permission it needs.
  */
 class DashboardController extends Controller
@@ -180,6 +184,75 @@ class DashboardController extends Controller
                     'detail' => $c->name.($c->checker_comment ? " · “{$c->checker_comment}”" : ''),
                     'href' => route('deals.show', ['transaction' => $c->transaction->ulid, 'tab' => 'documentation']),
                     'at' => $c->checked_at?->toIso8601String(),
+                ]));
+        }
+
+        $executionLink = fn (DealExecution $e) => route('deals.show', ['transaction' => $e->transaction->ulid, 'tab' => 'execution']);
+
+        if ($user->can('deals.execution.verify')) {
+            DealExecution::query()
+                ->where('status', ExecutionStatus::Executed)
+                ->where('uploaded_by', '!=', $user->id)
+                ->whereHas('transaction', fn (Builder $q) => $q->whereNotIn('deal_status', $this->finalStatuses()))
+                ->with(['transaction.company:id,name', 'document:id,name'])
+                ->oldest('uploaded_at')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (DealExecution $e) => $items->push([
+                    'id' => "execution-{$e->id}",
+                    'kind' => 'Execution check',
+                    'title' => $e->transaction->company->name,
+                    'detail' => $e->document->name,
+                    'href' => $executionLink($e),
+                    'at' => $e->uploaded_at?->toIso8601String(),
+                ]));
+        }
+
+        if ($user->can('deals.execution.manage')) {
+            DealExecution::query()
+                ->where('status', ExecutionStatus::Returned)
+                ->where('uploaded_by', $user->id)
+                ->with(['transaction.company:id,name', 'document:id,name'])
+                ->oldest('checked_at')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (DealExecution $e) => $items->push([
+                    'id' => "execution-returned-{$e->id}",
+                    'kind' => 'Sent back to you',
+                    'title' => $e->transaction->company->name,
+                    'detail' => $e->document->name.($e->checker_comment ? " · “{$e->checker_comment}”" : ''),
+                    'href' => $executionLink($e),
+                    'at' => $e->checked_at?->toIso8601String(),
+                ]));
+        }
+
+        // Documents this user signs for Beacon.
+        DealExecution::query()
+            ->where('status', ExecutionStatus::Scheduled)
+            ->where('signatory_user_id', $user->id)
+            ->with(['transaction.company:id,name', 'document:id,name'])
+            ->oldest('scheduled_at')->limit(self::QUEUE_LIMIT)->get()
+            ->each(fn (DealExecution $e) => $items->push([
+                'id' => "sign-{$e->id}",
+                'kind' => 'To sign',
+                'title' => $e->transaction->company->name,
+                'detail' => $e->document->name.($e->scheduled_at ? ' · '.$e->scheduled_at->format('d M Y, H:i').", {$e->place}" : ''),
+                'href' => $executionLink($e),
+                'at' => $e->scheduled_at?->toIso8601String(),
+            ]));
+
+        // The pickup list: deals whose executed documents are all verified and not yet picked up.
+        if ($user->can('deals.execution.custody')) {
+            Transaction::query()
+                ->whereNotNull('deal_status')
+                ->whereHas('executions', fn (Builder $q) => $q->whereNull('picked_up_at'))
+                ->whereDoesntHave('executions', fn (Builder $q) => $q->where('status', '!=', ExecutionStatus::Verified))
+                ->with('company:id,name')
+                ->withMax('executions', 'checked_at')
+                ->orderBy('executions_max_checked_at')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (Transaction $t) => $items->push([
+                    'id' => "pickup-{$t->id}",
+                    'kind' => 'Ready for pickup',
+                    'title' => $t->company->name,
+                    'detail' => 'Executed documents verified, ready for custody',
+                    'href' => route('deals.show', ['transaction' => $t->ulid, 'tab' => 'execution']),
+                    'at' => $t->getAttribute('executions_max_checked_at') ? Carbon::parse($t->getAttribute('executions_max_checked_at'))->toIso8601String() : null,
                 ]));
         }
 

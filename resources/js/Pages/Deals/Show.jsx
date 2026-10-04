@@ -1,5 +1,6 @@
 import { BillingPanel } from '@/Components/deals/billing-panel';
 import { DocumentationPanel } from '@/Components/deals/documentation-panel';
+import { ExecutionPanel } from '@/Components/deals/execution-panel';
 import { JobSheetPanel } from '@/Components/deals/job-sheet-panel';
 import { StatusPanel } from '@/Components/deals/status-panel';
 import { PageHeader } from '@/Components/page-header';
@@ -18,7 +19,6 @@ const dash = <span className="text-subtle-foreground">—</span>;
 
 /** Areas of the deal that arrive with the Phase 2 modules. */
 const LATER = [
-    ['execution', 'Execution'],
     ['security', 'Security'],
     ['isin', 'ISIN'],
     ['covenants', 'Covenants'],
@@ -174,6 +174,7 @@ export default function DealShow({
     status,
     jobSheet,
     documentation,
+    execution,
     activity,
     can,
 }) {
@@ -210,6 +211,7 @@ export default function DealShow({
                         <TabsTrigger value="billing">Contacts &amp; billing</TabsTrigger>
                         <TabsTrigger value="status">Status</TabsTrigger>
                         <TabsTrigger value="documentation">Documentation</TabsTrigger>
+                        <TabsTrigger value="execution">Execution</TabsTrigger>
                         <TabsTrigger value="job-sheet">Job sheet</TabsTrigger>
                         <TabsTrigger value="activity">Activity</TabsTrigger>
                         {LATER.map(([value, label]) => (
@@ -235,6 +237,9 @@ export default function DealShow({
                 </TabsContent>
                 <TabsContent value="documentation">
                     <DocumentationPanel dealId={deal.id} documentation={documentation} can={can} />
+                </TabsContent>
+                <TabsContent value="execution">
+                    <ExecutionPanel dealId={deal.id} execution={execution} can={can} />
                 </TabsContent>
                 <TabsContent value="job-sheet">
                     <JobSheetPanel dealId={deal.id} rows={jobSheet} can={can} />

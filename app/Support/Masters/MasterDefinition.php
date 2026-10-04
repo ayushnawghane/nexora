@@ -165,6 +165,10 @@ class MasterDefinition
                 $fieldRules = ['required', 'boolean'];
             }
 
+            if (($field['type'] ?? null) === 'date') {
+                $fieldRules[] = 'date_format:Y-m-d';
+            }
+
             if (($field['type'] ?? null) === 'multiselect') {
                 $related = new ($field['options'][0]);
                 $rules["{$attribute}.*"] = ['integer', 'distinct', Rule::exists($related->getTable(), $related->getKeyName())];
@@ -238,6 +242,7 @@ class MasterDefinition
                 'multiselect' => $record->{$field['relation']}->modelKeys(),
                 'enum' => $record->getAttribute($attribute)?->value,
                 'boolean' => (bool) $record->getAttribute($attribute),
+                'date' => $record->getAttribute($attribute)?->toDateString(),
                 default => $record->getAttribute($attribute),
             };
 
