@@ -41,7 +41,7 @@ function formatSchedule(value) {
 }
 
 /** A checkbox list of { value, label, description? } that fills form.data[name]. */
-function CheckList({ form, name, items, emptyText }) {
+export function CheckList({ form, name, items, emptyText }) {
     const toggle = (id, on) =>
         form.setData(name, on ? [...form.data[name], id] : form.data[name].filter((v) => v !== id));
     const error =

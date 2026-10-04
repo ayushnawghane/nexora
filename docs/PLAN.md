@@ -190,6 +190,15 @@ Plan: [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md).
 - Local import (2026-10-04): 32 POA holders (+12 inactive from execution history), 4,483 executions (3,224 verified, 1,044 awaiting check, 187 scheduled, 28 to schedule), 4,266 executed copies
 - ⬜ Owner review; roles; decision on old deals in the pickup list (PHASE-2-PLAN §4 #2)
 
+### M9: Security creation 🟡 built, owner review pending
+- ✅ Schema: `asset_types`, `security_types`, `charge_types`, `empanelled_agencies`, `deal_securities` (+ security types), `security_registrations` (+ securities covered), `security_registration_events` (filings, documents in `document_files`), `deal_diligence_items`; legal documents gained `security_nature`
+- ✅ Deal workspace **Security** tab: securities per legal document, ROC / CERSAI / pledge registrations with modify and satisfy / release history, due diligence checklist with **checker ≠ uploader**; registrations can be satisfied after the deal closes; final status requests warn about registrations in force
+- ✅ Permissions *Security: record … / due diligence checker*; Stack's `roc_*`, `cersai_*`, `pledge_*` mapped
+- ✅ Dashboard: due diligence checks and sent-back items; God Mode editors for securities, registrations and due diligence items
+- ✅ `legacy:import security` (part of `all`): masters, securities (kind from form type → document type → asset type; Stack's `first_exclusive`-style charge codes matched; empty placeholders skipped), registrations from Stack's mappings and asset rows (pledges add up pledged / unpledged quantities), due diligence items with their files (agencies from Stack's EA master)
+- Local import (2026-10-04): 150 empanelled agencies, 2,369 securities, 142 registrations, 509 due diligence items, 799 files
+- ⬜ Owner review; roles; Stack test entries in registrations (PHASE-2-PLAN §4 #3)
+
 ### Out of scope for Phase 1
 Other products, billing and invoicing, ISIN, legal and security modules, outward and payouts, the AIF client portal, the approver mobile app, reports and payment links.
 

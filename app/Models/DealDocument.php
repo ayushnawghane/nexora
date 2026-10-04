@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\DealDocumentKind;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
@@ -68,6 +69,14 @@ class DealDocument extends Model
     public function execution(): HasOne
     {
         return $this->hasOne(DealExecution::class);
+    }
+
+    /**
+     * @return HasMany<DealSecurity, $this>
+     */
+    public function securities(): HasMany
+    {
+        return $this->hasMany(DealSecurity::class);
     }
 
     /**

@@ -3,18 +3,25 @@
 use App\Enums\ConditionStage;
 use App\Enums\ConditionStatus;
 use App\Enums\DealDocumentKind;
+use App\Enums\DiligenceKind;
 use App\Enums\ExecutionStatus;
 use App\Enums\LegalDocumentCategory;
+use App\Enums\OwnerIdType;
+use App\Enums\RegistrationKind;
+use App\Enums\SecurityNature;
 use App\Enums\SignatoryType;
 use App\Models\ConditionDocument;
 use App\Models\DealCondition;
+use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
+use App\Models\DealSecurity;
 use App\Models\DocumentFile;
 use App\Models\IssuingAuthority;
 use App\Models\LegalDocumentType;
 use App\Models\PoaHolder;
 use App\Models\Product;
+use App\Models\SecurityRegistration;
 use App\Models\Transaction;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -224,4 +231,49 @@ test('POA holders and executions come over, one per document, with their execute
     $before = [DealExecution::query()->count(), DocumentFile::query()->count()];
     $this->artisan('legacy:import', ['area' => 'execution'])->assertSuccessful();
     expect([DealExecution::query()->count(), DocumentFile::query()->count()])->toBe($before);
+});
+
+test('securities, registrations and due diligence come over; empty Stack rows are skipped', function () {
+    legacyRows('master_asset_type', [['id' => 2, 'type_asset' => 'Movable Assets']]);
+    legacyRows('master_type_charge', [['id' => 2, 'type_charge' => 'First Exclusive']]);
+    legacyRows('master_security', [['id' => 13, 'security_name' => 'Receivables', 'asset_type_id' => 2]]);
+    legacyRows('ea_master', [['id' => 57, 'ea_code' => 'EA-57', 'ea_name' => 'G V Jain & Co']]);
+    legacyRows('legal_compliance_documents_data', [
+        ['id' => 1, 'con_id' => 5001, 'legal_id' => 14, 'asset_owner' => 'Aadhar Housing Finance Limited', 'charge_type' => 'first_exclusive',
+            'asset_type' => 'Movable Assets', 'encumbered' => 'non-encumbered', 'asset_office' => 'All receivables', 'cin_pan_num' => 'U65999MH2010PTC123456'],
+        ['id' => 2, 'con_id' => 5001, 'legal_id' => 9], // an empty placeholder
+    ]);
+    legacyRows('security_mapping', [['id' => 501, 'legal_id' => 1, 'security_id' => 13]]);
+    legacyRows('upload_file', [['id' => 7401, 'name' => 'ROC challan.pdf', 'path' => 'roc/challan.pdf'], ['id' => 7402, 'name' => 'Cover cert.pdf', 'path' => 'dd/cover.pdf']]);
+    legacyRows('sec_roc_mapping', [['id' => 1, 'con_id' => 5001, 'security_map_id' => '501', 'section' => 1, 'created_by' => 111]]);
+    legacyRows('sec_roc_asset_type', [['id' => 1, 'con_id' => 5001, 'map_id' => 1, 'amount' => '2000000000', 'challan_date' => '2025-06-01', 'charge_id' => '100123456', 'srn_no' => 'AB12345', 'challan_id' => 7401]]);
+    legacyRows('due_dilligience_security_certificate', [['id' => 1, 'con_id' => 5001, 'document' => 'Security Cover Certificate', 'issuing_authority_id' => 57, 'udin_unique_number' => '26064817EKEPNV6029']]);
+    legacyRows('due_dilligience_upload_files', [['id' => 1, 'con_id' => 5001, 'type' => 4, 'upload_id' => 7402, 'is_verified' => 1, 'verified_by' => 112, 'verified_at' => '2025-06-05 10:00:00', 'created_by' => 111]]);
+
+    $this->artisan('legacy:import', ['area' => 'all'])->assertSuccessful();
+
+    $security = DealSecurity::query()->sole(); // the placeholder is skipped
+    expect($security->nature)->toBe(SecurityNature::Hypothecation)
+        ->and($security->chargeType->name)->toBe('First Exclusive')
+        ->and($security->is_encumbered)->toBeFalse()
+        ->and($security->owner_id_type)->toBe(OwnerIdType::Cin)
+        ->and($security->securityTypes()->pluck('name')->all())->toBe(['Receivables'])
+        ->and(LegalDocumentType::query()->where('legacy_id', 14)->value('security_nature'))->toBeNull(); // Stack type not set in this fixture
+
+    $roc = SecurityRegistration::query()->sole();
+    expect($roc->kind)->toBe(RegistrationKind::Roc)
+        ->and($roc->reference)->toBe('100123456')
+        ->and($roc->securities()->sole()->id)->toBe($security->id)
+        ->and($roc->events()->sole()->filing_reference)->toBe('AB12345')
+        ->and($roc->events()->sole()->files()->sole()->original_name)->toBe('ROC challan.pdf');
+
+    $cover = DealDiligenceItem::query()->sole();
+    expect($cover->kind)->toBe(DiligenceKind::SecurityCover)
+        ->and($cover->status)->toBe(ConditionStatus::Verified)
+        ->and($cover->agency->name)->toBe('G V Jain & Co')
+        ->and($cover->currentFiles()->sole()->original_name)->toBe('Cover cert.pdf');
+
+    $before = [DealSecurity::query()->count(), SecurityRegistration::query()->count(), DealDiligenceItem::query()->count(), DocumentFile::query()->count()];
+    $this->artisan('legacy:import', ['area' => 'security'])->assertSuccessful();
+    expect([DealSecurity::query()->count(), SecurityRegistration::query()->count(), DealDiligenceItem::query()->count(), DocumentFile::query()->count()])->toBe($before);
 });

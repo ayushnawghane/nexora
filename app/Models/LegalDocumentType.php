@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\LegalDocumentCategory;
+use App\Enums\SecurityNature;
 use App\Models\Concerns\HasActiveFlag;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -19,17 +20,18 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property int $id
  * @property string $name
  * @property LegalDocumentCategory $category
+ * @property SecurityNature|null $security_nature
  * @property bool $is_active
  */
 class LegalDocumentType extends Model
 {
     use HasActiveFlag, LogsActivity, SoftDeletes;
 
-    protected $fillable = ['name', 'category', 'is_active'];
+    protected $fillable = ['name', 'category', 'security_nature', 'is_active'];
 
     protected function casts(): array
     {
-        return ['category' => LegalDocumentCategory::class];
+        return ['category' => LegalDocumentCategory::class, 'security_nature' => SecurityNature::class];
     }
 
     /**

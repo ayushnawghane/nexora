@@ -11,10 +11,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Deals\Documents\DealDocumentFileRequest;
 use App\Http\Requests\Deals\Documents\DealDocumentStoreRequest;
 use App\Models\DealCondition;
+use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
 use App\Models\DocumentFile;
 use App\Models\LegalDocumentType;
+use App\Models\SecurityRegistration;
+use App\Models\SecurityRegistrationEvent;
 use App\Models\Transaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,7 +61,11 @@ class DealDocumentController extends Controller
     public function removeFile(Request $request, Transaction $transaction, DocumentFile $file, RemoveDocumentFile $remove): RedirectResponse
     {
         // Executed copies belong to the execution team; everything else to the document makers.
-        $this->authorize($file->attachable_type === DealExecution::class ? 'manageExecution' : 'manageDocuments', $transaction);
+        $this->authorize(match ($file->attachable_type) {
+            DealExecution::class => 'manageExecution',
+            DealDiligenceItem::class => 'manageSecurity',
+            default => 'manageDocuments',
+        }, $transaction);
         abort_unless($this->dealOf($file) === $transaction->id, 404);
 
         $remove->handle($file, $request->user());
@@ -85,6 +92,10 @@ class DealDocumentController extends Controller
             DealDocument::class => DealDocument::withTrashed()->whereKey($file->attachable_id)->value('transaction_id'),
             DealCondition::class => DealCondition::query()->whereKey($file->attachable_id)->value('transaction_id'),
             DealExecution::class => DealExecution::query()->whereKey($file->attachable_id)->value('transaction_id'),
+            DealDiligenceItem::class => DealDiligenceItem::query()->whereKey($file->attachable_id)->value('transaction_id'),
+            SecurityRegistrationEvent::class => SecurityRegistration::query()
+                ->whereKey(SecurityRegistrationEvent::query()->whereKey($file->attachable_id)->value('security_registration_id'))
+                ->value('transaction_id'),
             default => null,
         };
     }

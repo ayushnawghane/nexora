@@ -344,6 +344,30 @@ class Transaction extends Model
         return $this->hasMany(DealExecution::class);
     }
 
+    /**
+     * @return HasMany<DealSecurity, $this>
+     */
+    public function securities(): HasMany
+    {
+        return $this->hasMany(DealSecurity::class);
+    }
+
+    /**
+     * @return HasMany<SecurityRegistration, $this>
+     */
+    public function registrations(): HasMany
+    {
+        return $this->hasMany(SecurityRegistration::class);
+    }
+
+    /**
+     * @return HasMany<DealDiligenceItem, $this>
+     */
+    public function diligenceItems(): HasMany
+    {
+        return $this->hasMany(DealDiligenceItem::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

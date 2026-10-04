@@ -79,6 +79,24 @@ class TransactionPolicy
         return $actor->can('deals.execution.verify') && $transaction->isOpenDeal();
     }
 
+    public function manageSecurity(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.security.manage') && $transaction->isOpenDeal();
+    }
+
+    /**
+     * Registrations can still be satisfied after a deal closes: that is often the last step.
+     */
+    public function satisfyRegistration(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.security.manage') && $transaction->isDeal();
+    }
+
+    public function verifySecurity(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.security.verify') && $transaction->isOpenDeal();
+    }
+
     public function custody(User $actor, Transaction $transaction): bool
     {
         return $actor->can('deals.execution.custody') && $transaction->isDeal();

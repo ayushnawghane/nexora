@@ -10,6 +10,7 @@ use App\Legacy\Importers\ExecutionImporter;
 use App\Legacy\Importers\MastersImporter;
 use App\Legacy\Importers\OrganisationImporter;
 use App\Legacy\Importers\RolesImporter;
+use App\Legacy\Importers\SecurityImporter;
 use App\Legacy\Importers\TransactionsImporter;
 use App\Legacy\ImportReport;
 use Illuminate\Console\Command;
@@ -28,7 +29,7 @@ class LegacyImport extends Command
     use ConfirmableTrait;
 
     protected $signature = 'legacy:import
-        {area : organisation, roles, masters, companies, transactions, documents, execution, or all (in that order)}
+        {area : organisation, roles, masters, companies, transactions, documents, execution, security, or all (in that order)}
         {--dry-run : Run everything, report, then roll back}
         {--force : Run in production without asking}';
 
@@ -43,6 +44,7 @@ class LegacyImport extends Command
         TransactionsImporter::class,
         DocumentsImporter::class,
         ExecutionImporter::class,
+        SecurityImporter::class,
     ];
 
     public function handle(): int

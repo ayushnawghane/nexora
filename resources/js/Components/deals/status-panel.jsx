@@ -63,6 +63,14 @@ function ChangeStatusDialog({ dealId, status, open, onOpenChange }) {
                         items={status.next}
                         hint={target ? teamsText(target.teams) : undefined}
                     />
+                    {target?.final && status.active_registrations > 0 && (
+                        <p className="text-[13px] text-warning">
+                            {status.active_registrations === 1
+                                ? '1 security registration is still in force.'
+                                : `${status.active_registrations} security registrations are still in force.`}{' '}
+                            Record their satisfaction on the Security tab.
+                        </p>
+                    )}
                     <TextField
                         form={form}
                         name="effective_on"

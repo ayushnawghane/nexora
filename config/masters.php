@@ -3,12 +3,16 @@
 use App\Enums\ConditionStage;
 use App\Enums\LegalDocumentCategory;
 use App\Enums\Listing;
+use App\Enums\SecurityNature;
 use App\Models\Arranger;
+use App\Models\AssetType;
 use App\Models\Bank;
+use App\Models\ChargeType;
 use App\Models\ConditionDocument;
 use App\Models\ContactType;
 use App\Models\Department;
 use App\Models\Designation;
+use App\Models\EmpanelledAgency;
 use App\Models\IssuingAuthority;
 use App\Models\JobSheetActivity;
 use App\Models\LeadSource;
@@ -16,6 +20,7 @@ use App\Models\LegalDocumentType;
 use App\Models\Pincode;
 use App\Models\PoaHolder;
 use App\Models\Product;
+use App\Models\SecurityType;
 use App\Models\State;
 use App\Models\TransactionType;
 use App\Models\User;
@@ -172,6 +177,11 @@ return [
             'fields' => [
                 'name' => $name(200),
                 'category' => ['label' => 'Category', 'type' => 'enum', 'enum' => LegalDocumentCategory::class, 'rules' => ['required'], 'list' => true],
+                'security_nature' => [
+                    'label' => 'Security it creates', 'type' => 'enum', 'enum' => SecurityNature::class, 'empty_label' => 'None',
+                    'rules' => ['nullable'], 'list' => true,
+                    'hint' => 'Securities recorded under this document start with this kind.',
+                ],
                 'product_ids' => [
                     'label' => 'Products', 'type' => 'multiselect', 'rules' => ['array', 'min:1'], 'relation' => 'products', 'options' => [Product::class, 'name'], 'list' => true,
                     'hint' => 'Deals of these products can add the document.',
@@ -194,6 +204,38 @@ return [
             // the same document name can be both a CP and a CS
             'unique_together' => [['name', 'stage']],
             'dependents' => ['dealConditions'],
+            'default_sort' => 'name',
+        ],
+        'asset-types' => [
+            'group' => 'deals', 'label' => 'Asset types', 'singular' => 'asset type',
+            'model' => AssetType::class,
+            'fields' => ['name' => $name(100)],
+            'dependents' => ['securityTypes', 'dealSecurities'],
+        ],
+        'security-types' => [
+            'group' => 'deals', 'label' => 'Security types', 'singular' => 'security type',
+            'model' => SecurityType::class,
+            'fields' => [
+                'name' => $name(),
+                'asset_type_id' => ['label' => 'Asset type', 'type' => 'select', 'rules' => ['nullable', 'integer'], 'relation' => 'assetType', 'options' => [AssetType::class, 'name'], 'list' => true],
+            ],
+            'dependents' => ['dealSecurities'],
+        ],
+        'charge-types' => [
+            'group' => 'deals', 'label' => 'Charge types', 'singular' => 'charge type',
+            'model' => ChargeType::class,
+            'fields' => ['name' => $name(100)],
+            'dependents' => ['dealSecurities'],
+        ],
+        'empanelled-agencies' => [
+            'group' => 'deals', 'label' => 'Empanelled agencies', 'singular' => 'empanelled agency',
+            'model' => EmpanelledAgency::class,
+            'fields' => [
+                'code' => ['label' => 'Code', 'type' => 'text', 'rules' => ['required', 'string', 'max:20', 'regex:/^[A-Z0-9\-]+$/'], 'unique' => true, 'transform' => 'upper', 'list' => true, 'search' => true, 'sortable' => true],
+                'name' => ['label' => 'Name', 'type' => 'text', 'rules' => ['required', 'string', 'max:200'], 'list' => true, 'search' => true, 'sortable' => true],
+                'city' => ['label' => 'City', 'type' => 'text', 'rules' => ['nullable', 'string', 'max:120'], 'list' => true],
+            ],
+            'dependents' => ['diligenceItems'],
             'default_sort' => 'name',
         ],
         'poa-holders' => [

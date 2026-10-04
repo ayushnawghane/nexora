@@ -5,29 +5,43 @@ namespace App\Http\Controllers\Deals;
 use App\Enums\ConditionStatus;
 use App\Enums\DealDocumentKind;
 use App\Enums\DealStatus;
+use App\Enums\DiligenceKind;
 use App\Enums\ExecutionStatus;
 use App\Enums\JobSheetStatus;
+use App\Enums\OwnerIdType;
+use App\Enums\RegistrationKind;
+use App\Enums\RegistrationStatus;
+use App\Enums\SecurityNature;
 use App\Enums\SignatoryType;
 use App\Enums\StatusApprovalTeam;
 use App\Http\Controllers\Controller;
+use App\Models\AssetType;
+use App\Models\ChargeType;
 use App\Models\CompanyAddress;
 use App\Models\CompanyContact;
 use App\Models\CompanyGstin;
 use App\Models\ConditionDocument;
 use App\Models\DealBilling;
 use App\Models\DealCondition;
+use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
 use App\Models\DealJobSheetEntry;
+use App\Models\DealSecurity;
 use App\Models\DealStatusChange;
 use App\Models\DealStatusRequest;
 use App\Models\DealStatusVote;
 use App\Models\DocumentFile;
+use App\Models\EmpanelledAgency;
 use App\Models\EngagementLetter;
 use App\Models\IssuingAuthority;
 use App\Models\JobSheetActivity;
 use App\Models\LegalDocumentType;
 use App\Models\PoaHolder;
+use App\Models\SecurityRegistration;
+use App\Models\SecurityRegistrationEvent;
+use App\Models\SecurityType;
+use App\Models\State;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Tax\GstCalculator;
@@ -135,6 +149,7 @@ class DealController extends Controller
             'jobSheet' => $this->jobSheet($transaction, $user),
             'documentation' => $this->documentation($transaction, $user),
             'execution' => $this->execution($transaction, $user),
+            'security' => $this->security($transaction, $user),
             'activity' => $this->activity($transaction),
             'can' => [
                 'editBilling' => $user->can('editDeal', $transaction),
@@ -146,6 +161,9 @@ class DealController extends Controller
                 'manageExecution' => $user->can('manageExecution', $transaction),
                 'verifyExecution' => $user->can('verifyExecution', $transaction),
                 'custody' => $user->can('custody', $transaction),
+                'manageSecurity' => $user->can('manageSecurity', $transaction),
+                'satisfyRegistration' => $user->can('satisfyRegistration', $transaction),
+                'verifySecurity' => $user->can('verifySecurity', $transaction),
             ],
         ]);
     }
@@ -270,7 +288,10 @@ class DealController extends Controller
                 'value' => $s->value,
                 'label' => $s->label(),
                 'teams' => array_map(fn (StatusApprovalTeam $t) => $t->label(), $from->approvalTeamsFor($s)),
+                'final' => $s->isFinal(),
             ], $next),
+            // A warning, not a block (PHASE-2-PLAN §4 #3): closing a deal with charges still registered.
+            'active_registrations' => $deal->registrations()->where('status', RegistrationStatus::Active)->count(),
             'needs_noc' => (bool) $from?->needsNocToLeave(),
             'min_date' => $deal->deal_status_since?->toDateString(),
             'max_date' => today()->toDateString(),
@@ -530,6 +551,135 @@ class DealController extends Controller
     }
 
     /**
+     * The deal's securities, their registrations and its due diligence, with the form choices.
+     *
+     * @return array<string, mixed>
+     */
+    private function security(Transaction $deal, User $user): array
+    {
+        $fileWith = ['uploader:id,name', 'remover:id,name'];
+        $securities = $deal->securities()
+            ->with(['document:id,name', 'assetType:id,name', 'chargeType:id,name', 'state:id,name', 'securityTypes:id,name', 'registrations:id,kind,status'])
+            ->orderBy('deal_document_id')->orderBy('id')->get();
+        $withDiligence = $deal->diligenceItems()->whereNotNull('deal_security_id')->pluck('deal_security_id')->unique()->all();
+
+        $registrations = $deal->registrations()
+            ->with(['securities.securityTypes:id,name', 'events' => fn ($q) => $q->with(['creator:id,name', 'files' => fn ($f) => $f->with($fileWith)])])
+            ->orderBy('kind')->orderBy('id')->get();
+
+        $diligence = $deal->diligenceItems()
+            ->with(['security.securityTypes:id,name', 'agency:id,code,name', 'submitter:id,name', 'checker:id,name', 'files' => fn ($q) => $q->with($fileWith)])
+            ->orderBy('kind')->orderBy('id')->get();
+
+        return [
+            'securities' => $securities->map(fn (DealSecurity $s) => [
+                'id' => $s->id,
+                'summary' => $s->summary(),
+                'deal_document_id' => $s->deal_document_id,
+                'document' => $s->document->name,
+                'nature' => $s->nature->value,
+                'nature_label' => $s->nature->label(),
+                'asset_owner' => $s->asset_owner,
+                'owner_id_type' => $s->owner_id_type?->value,
+                'owner_id_number' => $s->owner_id_number,
+                'asset_type_id' => $s->asset_type_id,
+                'asset_type' => $s->assetType?->name,
+                'charge_type_id' => $s->charge_type_id,
+                'charge_type' => $s->chargeType?->name,
+                'security_type_ids' => $s->securityTypes->modelKeys(),
+                'security_types' => $s->securityTypes->pluck('name')->all(),
+                'pertaining_to' => $s->pertaining_to,
+                'is_encumbered' => $s->is_encumbered,
+                'description' => $s->description,
+                'address' => $s->address,
+                'pincode' => $s->pincode,
+                'city' => $s->city,
+                'state_id' => $s->state_id,
+                'state' => $s->state?->name,
+                'form_of_securities' => $s->form_of_securities,
+                'confirming_party' => $s->confirming_party,
+                'registered' => $s->registrations->map(fn (SecurityRegistration $r) => $r->kind->label().' · '.$r->status->label($r->kind))->values(),
+                'can_remove' => $s->registrations->isEmpty() && ! in_array($s->id, $withDiligence, true),
+                'kinds' => array_map(fn (RegistrationKind $k) => $k->value, $s->nature->registrationKinds()),
+            ]),
+            'registrations' => $registrations->map(fn (SecurityRegistration $r) => [
+                'id' => $r->id,
+                'kind' => $r->kind->value,
+                'kind_label' => $r->kind->label(),
+                'status' => $r->status->value,
+                'status_label' => $r->status->label($r->kind),
+                'status_tone' => $r->status->tone(),
+                'reference' => $r->reference,
+                'reference_label' => $r->kind->referenceLabel(),
+                'filing_label' => $r->kind->filingLabel(),
+                'amount' => $r->amount,
+                'pledge' => $r->kind === RegistrationKind::Pledge ? [
+                    'security_name' => $r->security_name,
+                    'quantity' => $r->quantity,
+                    'face_value' => $r->face_value,
+                    'depository' => $r->depository,
+                    'pledgor' => trim(implode(' / ', array_filter([$r->pledgor_dp_id, $r->pledgor_client_id]))),
+                    'pledgee' => trim(implode(' / ', array_filter([$r->pledgee_dp_id, $r->pledgee_client_id]))),
+                ] : null,
+                'securities' => $r->securities->map(fn (DealSecurity $s) => $s->summary())->values(),
+                'events' => $r->events->map(fn (SecurityRegistrationEvent $e) => [
+                    'id' => $e->id,
+                    'action' => $e->action->value,
+                    'action_label' => $e->action->label($r->kind),
+                    'happened_on' => $e->happened_on->toDateString(),
+                    'filing_reference' => $e->filing_reference,
+                    'amount' => $e->amount,
+                    'reason' => $e->reason,
+                    'by' => $e->creator->name,
+                    'files' => $e->files->map(fn (DocumentFile $f) => $f->present())->values(),
+                ])->values(),
+                'is_active' => $r->status === RegistrationStatus::Active,
+            ]),
+            'diligence' => $diligence->map(fn (DealDiligenceItem $d) => [
+                'id' => $d->id,
+                'kind' => $d->kind->value,
+                'kind_label' => $d->kind->label(),
+                'title' => $d->title,
+                'security' => $d->security?->summary(),
+                'asset_owner' => $d->asset_owner,
+                'issued_by' => $d->agency?->name,
+                'reference' => $d->reference,
+                'status' => $d->status->value,
+                'status_label' => $d->status->label(),
+                'status_tone' => $d->status->tone(),
+                'is_open' => $d->status->isOpen(),
+                'submitted_by' => $d->submitter?->name,
+                'submitted_at' => $d->submitted_at?->toIso8601String(),
+                'checker' => $d->checker?->name,
+                'checker_comment' => $d->checker_comment,
+                'checked_at' => $d->checked_at?->toIso8601String(),
+                'files' => $d->files->whereNull('removed_at')->sortBy('id')->map(fn (DocumentFile $f) => $f->present())->values(),
+                'removed_files' => $d->files->whereNotNull('removed_at')->map(fn (DocumentFile $f) => $f->present())->values(),
+                'can_check' => $d->status === ConditionStatus::Submitted && $d->submitted_by !== $user->id,
+                'is_mine' => $d->submitted_by === $user->id,
+                'can_remove' => $d->status === ConditionStatus::Pending && $d->files->isEmpty(),
+            ]),
+            'options' => [
+                'documents' => $deal->dealDocuments()->with('type:id,security_nature')->orderBy('name')->get(['id', 'name', 'legal_document_type_id'])
+                    ->map(fn (DealDocument $d) => ['value' => $d->id, 'label' => $d->name, 'nature' => $d->type->security_nature?->value]),
+                'natures' => SecurityNature::options(),
+                'owner_id_types' => OwnerIdType::options(),
+                'asset_types' => AssetType::query()->active()->orderBy('name')->get(['id', 'name'])->map(fn (AssetType $a) => ['value' => $a->id, 'label' => $a->name]),
+                'charge_types' => ChargeType::query()->active()->orderBy('name')->get(['id', 'name'])->map(fn (ChargeType $c) => ['value' => $c->id, 'label' => $c->name]),
+                'security_types' => SecurityType::query()->active()->orderBy('name')->get(['id', 'name', 'asset_type_id'])
+                    ->map(fn (SecurityType $t) => ['value' => $t->id, 'label' => $t->name, 'asset_type_id' => $t->asset_type_id]),
+                'states' => State::query()->orderBy('name')->get(['id', 'name'])->map(fn (State $st) => ['value' => $st->id, 'label' => $st->name]),
+                'kinds' => RegistrationKind::options(),
+                'diligence_kinds' => DiligenceKind::options(),
+                'agencies' => EmpanelledAgency::query()->active()->orderBy('name')->get(['id', 'code', 'name'])
+                    ->map(fn (EmpanelledAgency $a) => ['value' => $a->id, 'label' => $a->name, 'description' => $a->code]),
+                'asset_owners' => $securities->pluck('asset_owner')->unique()->sort()->values(),
+            ],
+            'active_registrations' => $registrations->where('status', RegistrationStatus::Active)->count(),
+        ];
+    }
+
+    /**
      * Activity log entries for the deal, its billing and its job sheet, plus status changes, newest first.
      *
      * @return list<array<string, mixed>>
@@ -543,6 +693,9 @@ class DealController extends Controller
             DealDocument::class => $deal->dealDocuments()->withTrashed()->pluck('id')->all(),
             DealCondition::class => $deal->conditions()->pluck('id')->all(),
             DealExecution::class => $deal->executions()->pluck('id')->all(),
+            DealSecurity::class => $deal->securities()->withTrashed()->pluck('id')->all(),
+            SecurityRegistration::class => $deal->registrations()->pluck('id')->all(),
+            DealDiligenceItem::class => $deal->diligenceItems()->pluck('id')->all(),
         ];
 
         $logs = Activity::query()
@@ -565,6 +718,8 @@ class DealController extends Controller
                     DealDocument::class => 'Documents',
                     DealCondition::class => 'CP/CS',
                     DealExecution::class => 'Execution',
+                    DealSecurity::class, SecurityRegistration::class => 'Security',
+                    DealDiligenceItem::class => 'Due diligence',
                     default => 'Transaction',
                 },
                 'event' => $a->event ?? $a->description,

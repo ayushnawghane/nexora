@@ -192,6 +192,9 @@ Notes on specific lists:
 - **Job sheet activities:** the checklist every deal's job sheet carries. *Applies to* limits an activity to listed or unlisted issues; leave it empty for every deal.
 - **Issuing authorities:** who issues a CP/CS document (Issuer, Statutory Auditor, ROC …).
 - **Legal documents:** the documents a deal can be executed under (trust deed, deed of hypothecation …), with a category and the products whose deals can use them.
+- **Asset types / Security types / Charge types:** what securities are over (book debts, listed shares …, grouped by movable, immovable or intangible assets) and the ranking of a charge (exclusive, first pari passu …).
+- **Empanelled agencies:** the CA firms and other agencies on Beacon's panel that issue due diligence certificates.
+- **Legal documents** also say which kind of security the document creates (hypothecation, mortgage, pledge, guarantee); securities recorded under it start with that kind.
 - **POA holders:** people outside Beacon who sign documents under a power of attorney, with their email and the dates their POA is valid. Only a POA valid on the execution date can be chosen.
 - **CP / CS documents:** the standard conditions precedent and subsequent, with their issuing authority. Tick the kinds of issue (listed/unlisted, secured/unsecured) a document is **suggested** for; any document can still be added to any deal.
 
@@ -284,7 +287,7 @@ Once approved, someone with *Issue engagement letters* opens the transaction and
 
 ## 12. Deals: the deal workspace
 
-**Deals** in the sidebar (needs *View deals*). The list shows every transaction whose engagement letter has been issued. Search by company, CIN, EL number or deal code, and filter by status. Open a deal to see its workspace, one tab per area. Tabs for the later Phase 2 modules (Security, ISIN, Covenants, Credit rating, Outward, Invoices) are placeholders for now.
+**Deals** in the sidebar (needs *View deals*). The list shows every transaction whose engagement letter has been issued. Search by company, CIN, EL number or deal code, and filter by status. Open a deal to see its workspace, one tab per area. Tabs for the later Phase 2 modules (ISIN, Covenants, Credit rating, Outward, Invoices) are placeholders for now.
 
 ### Overview
 The EL number, deal code, issue and owners at a glance, and every version of the engagement letter. **Fees, schedule and approval** opens the full transaction record.
@@ -337,6 +340,13 @@ Getting the deal's documents signed. Sending, scheduling and recording need *Exe
 - When every document is verified, the tab suggests requesting the move to **Live** on the Status tab. (Stack moved the deal to Live by itself; in Nexora the move still goes through the status approval.)
 - **Pickup:** once every document in execution is verified, the deal appears on the custody team's dashboard as *Ready for pickup*. **Mark picked up** records who collected them and when.
 
+### Security
+What the deal is secured by, where each security is registered, and the due diligence. Recording needs *Security: record securities, registrations and due diligence*; verifying due diligence needs *Security: due diligence checker*.
+- **Securities:** **Add security** under one of the deal's legal documents: its kind, the asset owner (with a CIN or PAN, checked), the charge, the asset type, what it's over, encumbrance, a description and the asset's address. A security that's registered, or that due diligence refers to, can't be removed; a registered one can't change kind.
+- **Registrations:** **Record registration** for a **ROC charge**, a **CERSAI** registration or a **pledge** (with the depository details), choosing the securities it covers and attaching the filing documents (challan, signed form, certificate …). Each security can be in one registration of each kind at a time. Later, **Modify** (with what changed and why) or **Satisfy** / **Release**; each step keeps its date, filing number and documents. A satisfied registration is final. Registrations can still be satisfied after the deal is closed.
+- **Due diligence:** **Add item**: a ROC search report (for an asset owner), a security certificate or NOC (for a security), the security cover certificate, Annexure A / B, or another document, with the empanelled agency that issued it and its UDIN. **Upload** sends it for checking; a **checker** (never the uploader) verifies it or sends it back.
+- When you request a final status (Redeemed, Closed …) while registrations are still in force, the request form reminds you to record their satisfaction.
+
 ### Job sheet
 The checklist of activities for the deal (from *Masters → Job sheet activities*).
 - The **maker** (*Job sheet: maker*) clicks **Record**, enters the date the item was received and a comment, and sends it for checking.
@@ -344,7 +354,7 @@ The checklist of activities for the deal (from *Masters → Job sheet activities
 - A sent-back entry can be corrected and resubmitted. A verified entry is final.
 
 ### Activity
-Everything that happened on the deal, newest first: status changes, billing changes, job sheet entries, documents, CP/CS items and executions, with who did it and when.
+Everything that happened on the deal, newest first: status changes, billing changes, job sheet entries, documents, CP/CS items, executions, securities, registrations and due diligence, with who did it and when.
 
 ---
 
@@ -352,7 +362,7 @@ Everything that happened on the deal, newest first: status changes, billing chan
 
 **Dashboard** is the first page after sign-in.
 - **Headline numbers** (if you can see deals or transactions): open deals, live deals, deals opened this financial year, issue size under trusteeship, drafts and transactions pending approval. Click a number to open the matching list.
-- **Waiting on you:** transactions to approve, deal status changes waiting for your team, job sheet entries, CP/CS items and executed copies to check, your work that was sent back, documents you sign for Beacon, and (for custody) deals ready for pickup. Oldest first; click one to go straight to it.
+- **Waiting on you:** transactions to approve, deal status changes waiting for your team, job sheet entries, CP/CS items, executed copies and due diligence items to check, your work that was sent back, documents you sign for Beacon, and (for custody) deals ready for pickup. Oldest first; click one to go straight to it.
 
 ---
 
@@ -360,7 +370,7 @@ Everything that happened on the deal, newest first: status changes, billing chan
 
 **Administration → God Mode** (super-admins only). Corrects any business record when the normal screens can't, for example a deal that's already active or a letter that went out with a mistake. If you entered your 2FA code more than 15 minutes ago, you're asked for a fresh one first.
 
-- **Find the record:** search by company name, CIN, PAN, GSTIN, EL number (including old, retired ones) or deal code. A company page lists its GSTINs, addresses, contacts and transactions; a deal page lists its basics, letter contacts, issue details, fees, billing, status, job sheet, legal documents, CP/CS items and executions. For documents you can correct the name; for CP/CS items the name, issuing authority, due date and comments; for executions the place, dates and comments (status, signatory and files stay as they happened).
+- **Find the record:** search by company name, CIN, PAN, GSTIN, EL number (including old, retired ones) or deal code. A company page lists its GSTINs, addresses, contacts and transactions; a deal page lists its basics, letter contacts, issue details, fees, billing, status, job sheet, legal documents, CP/CS items and executions. For documents you can correct the name; for CP/CS items the name, issuing authority, due date and comments; for executions the place, dates and comments; for securities every detail of the security form; for registrations the reference, amount and pledge details; for due diligence items the title, agency, UDIN and comments (statuses, filings and files stay as they happened).
 - **Correct it:** click **Correct**, change the values and give a **reason**. The values are checked exactly as on the normal screen, so God Mode can't save anything the regular form would refuse. If someone else changed the record after you opened the page, reload and try again.
 - **Undo:** each correction in the **Change history** has an **Undo** button. It puts the old values back (checked against today's rules) and is refused if the record has changed since. The undo is logged too. Some changes can't be undone this way (a forced status change, the first fees on a deal); make a new correction instead.
 - **Follow-ups:** correcting the issue or fees rebuilds the fee schedule. Check it on the normal view, then click **Verify schedule**. If data printed in the letter changed after its latest version, you're told the letter may be out of date.
@@ -384,6 +394,7 @@ At go-live, users, roles, masters, companies, Debenture Trustee deals and their 
 - **Fees and schedules:** billed periods are exactly as Stack billed them. Deals whose fee setup in Stack was incomplete come without fees; set them up through God Mode if needed.
 - **Documentation:** each deal's legal documents (with supplements, amendments and copies) and its CP/CS items arrive with their status and files. Files show **(not copied from Stack yet)** until the files are brought over. Items Stack's older system listed twice on a deal are merged into one, keeping all files. Stack's "WIP" items are *Awaiting check*.
 - **Execution:** each document's execution comes over with its schedule, signatory, executed copy and verification. Where Stack had several execution rows for one document, the verified one (or the latest) is kept. Stack's "Client" signatory and POA holders who only appear in executions are listed under *Masters → POA holders* (the latter inactive).
+- **Security:** securities come from Stack's per-document security details (Stack's ~2,400 empty placeholder rows are skipped), with ROC, CERSAI and pledge registrations, their filings and documents, and the due diligence items with their files.
 - **Placeholders:** a user email like `user-123@legacy.invalid` means Stack had no usable email for that person. Ask an administrator to correct it.
 
 ---

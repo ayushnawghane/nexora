@@ -15,6 +15,7 @@ use App\Http\Controllers\Deals\DealConditionController;
 use App\Http\Controllers\Deals\DealController;
 use App\Http\Controllers\Deals\DealDocumentController;
 use App\Http\Controllers\Deals\DealExecutionController;
+use App\Http\Controllers\Deals\DealSecurityController;
 use App\Http\Controllers\Deals\DealStatusController;
 use App\Http\Controllers\Deals\JobSheetController;
 use App\Http\Controllers\GodMode\GodModeController;
@@ -112,6 +113,17 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
             Route::post('{execution}/record', 'record')->name('record');
             Route::post('{execution}/check', 'check')->name('check');
             Route::delete('{execution}', 'destroy')->name('destroy');
+        });
+        Route::controller(DealSecurityController::class)->group(function () {
+            Route::post('{transaction}/securities', 'store')->name('securities.store');
+            Route::put('{transaction}/securities/{security}', 'update')->name('securities.update');
+            Route::delete('{transaction}/securities/{security}', 'destroy')->name('securities.destroy');
+            Route::post('{transaction}/registrations', 'register')->name('registrations.store');
+            Route::post('{transaction}/registrations/{registration}/events', 'event')->name('registrations.event');
+            Route::post('{transaction}/diligence', 'addDiligence')->name('diligence.store');
+            Route::post('{transaction}/diligence/{item}/files', 'uploadDiligence')->name('diligence.upload');
+            Route::post('{transaction}/diligence/{item}/check', 'checkDiligence')->name('diligence.check');
+            Route::delete('{transaction}/diligence/{item}', 'removeDiligence')->name('diligence.destroy');
         });
     });
     Route::prefix('deal-status-requests/{statusRequest}')->name('deals.status.')->controller(DealStatusController::class)->group(function () {

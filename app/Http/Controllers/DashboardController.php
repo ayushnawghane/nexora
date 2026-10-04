@@ -12,6 +12,7 @@ use App\Enums\StatusRequestState;
 use App\Enums\TransactionStatus;
 use App\Models\ApprovalRequest;
 use App\Models\DealCondition;
+use App\Models\DealDiligenceItem;
 use App\Models\DealExecution;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealStatusRequest;
@@ -184,6 +185,41 @@ class DashboardController extends Controller
                     'detail' => $c->name.($c->checker_comment ? " · “{$c->checker_comment}”" : ''),
                     'href' => route('deals.show', ['transaction' => $c->transaction->ulid, 'tab' => 'documentation']),
                     'at' => $c->checked_at?->toIso8601String(),
+                ]));
+        }
+
+        $securityLink = fn (DealDiligenceItem $d) => route('deals.show', ['transaction' => $d->transaction->ulid, 'tab' => 'security']);
+
+        if ($user->can('deals.security.verify')) {
+            DealDiligenceItem::query()
+                ->where('status', ConditionStatus::Submitted)
+                ->where('submitted_by', '!=', $user->id)
+                ->whereHas('transaction', fn (Builder $q) => $q->whereNotIn('deal_status', $this->finalStatuses()))
+                ->with('transaction.company:id,name')
+                ->oldest('submitted_at')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (DealDiligenceItem $d) => $items->push([
+                    'id' => "diligence-{$d->id}",
+                    'kind' => 'Due diligence check',
+                    'title' => $d->transaction->company->name,
+                    'detail' => $d->title,
+                    'href' => $securityLink($d),
+                    'at' => $d->submitted_at?->toIso8601String(),
+                ]));
+        }
+
+        if ($user->can('deals.security.manage')) {
+            DealDiligenceItem::query()
+                ->where('status', ConditionStatus::Returned)
+                ->where('submitted_by', $user->id)
+                ->with('transaction.company:id,name')
+                ->oldest('checked_at')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (DealDiligenceItem $d) => $items->push([
+                    'id' => "diligence-returned-{$d->id}",
+                    'kind' => 'Sent back to you',
+                    'title' => $d->transaction->company->name,
+                    'detail' => $d->title.($d->checker_comment ? " · “{$d->checker_comment}”" : ''),
+                    'href' => $securityLink($d),
+                    'at' => $d->checked_at?->toIso8601String(),
                 ]));
         }
 

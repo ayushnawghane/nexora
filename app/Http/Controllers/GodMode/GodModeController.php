@@ -17,13 +17,16 @@ use App\Models\CompanyAddress;
 use App\Models\CompanyContact;
 use App\Models\CompanyGstin;
 use App\Models\DealCondition;
+use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
 use App\Models\DealJobSheetEntry;
+use App\Models\DealSecurity;
 use App\Models\EngagementLetter;
 use App\Models\FeeLine;
 use App\Models\GodModeChange;
 use App\Models\RetiredElNumber;
+use App\Models\SecurityRegistration;
 use App\Models\Transaction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -80,7 +83,7 @@ class GodModeController extends Controller
 
     public function transaction(Transaction $transaction): Response
     {
-        $transaction->load(['company:id,ulid,name', 'jobSheetEntries.activity:id,name', 'dealDocuments', 'conditions', 'executions.document']);
+        $transaction->load(['company:id,ulid,name', 'jobSheetEntries.activity:id,name', 'dealDocuments', 'conditions', 'executions.document', 'securities.securityTypes', 'registrations', 'diligenceItems']);
         $item = fn (string $editor, $record, string $title, ?string $subtitle = null, ?string $id = null) => [
             ...Editors::present(Editors::get($editor), $record, $id ?? (string) $record->getKey()),
             'title' => $title,
@@ -110,6 +113,13 @@ class GodModeController extends Controller
                 ->map(fn (DealCondition $c) => $item('deal-condition', $c, $c->name, "{$c->stage->short()} · {$c->status->label()}"))->values()];
             $sections[] = ['title' => 'Execution', 'items' => $transaction->executions
                 ->map(fn (DealExecution $e) => $item('deal-execution', $e, $e->document->name, $e->status->label()))->values()];
+            $sections[] = ['title' => 'Security', 'items' => $transaction->securities
+                ->map(fn (DealSecurity $s) => $item('deal-security', $s, $s->summary(), $s->nature->label()))
+                ->concat($transaction->registrations->map(fn (SecurityRegistration $r) => $item('security-registration', $r,
+                    $r->kind->label().($r->reference ? " {$r->reference}" : ''), $r->status->label($r->kind))))
+                ->values()];
+            $sections[] = ['title' => 'Due diligence', 'items' => $transaction->diligenceItems
+                ->map(fn (DealDiligenceItem $d) => $item('diligence-item', $d, $d->title, "{$d->kind->label()} · {$d->status->label()}"))->values()];
         }
 
         $latest = $transaction->engagementLetters()->with('generator:id,name')->get();

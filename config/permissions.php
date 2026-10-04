@@ -47,6 +47,8 @@ return [
                 'deals.execution.manage' => 'Execution: send, schedule and record executed copies',
                 'deals.execution.verify' => 'Execution: checker (verify, send back)',
                 'deals.execution.custody' => 'Execution: pickup list (custody of executed documents)',
+                'deals.security.manage' => 'Security: record securities, registrations and due diligence',
+                'deals.security.verify' => 'Security: due diligence checker (verify, send back)',
             ],
         ],
         'companies' => [

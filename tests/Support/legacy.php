@@ -349,6 +349,7 @@ function legacySchema(): void
         $t->string('product_id')->default('');
         $t->bigInteger('supplementary_to')->default(0);
         $t->bigInteger('parent_id')->default(0);
+        $t->tinyInteger('type')->nullable();
         $t->bigInteger('created_by')->nullable();
         $flags($t);
     });
@@ -432,6 +433,134 @@ function legacySchema(): void
         $t->dateTime('created_date')->nullable();
         $flags($t);
     });
+    // Security
+    foreach (['master_asset_type' => 'type_asset', 'master_type_charge' => 'type_charge'] as $table => $column) {
+        $schema->create($table, function (Blueprint $t) use ($flags, $column) {
+            $t->id();
+            $t->string($column);
+            $flags($t);
+        });
+    }
+    $schema->create('master_security', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->string('security_name');
+        $t->integer('asset_type_id')->nullable();
+        $flags($t);
+    });
+    $schema->create('ea_master', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->string('ea_code')->nullable();
+        $t->string('ea_name')->nullable();
+        $t->string('city')->nullable();
+        $flags($t);
+    });
+    $schema->create('legal_compliance_documents_data', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->integer('con_id');
+        $t->integer('legal_id')->default(0);
+        foreach (['asset_owner', 'charge_type', 'pertaining_to', 'asset_type', 'encumbered', 'street_name', 'area', 'pincode', 'city', 'state', 'type', 'form_of_securities', 'confirming_party', 'cin_pan_num'] as $c) {
+            $t->string($c)->nullable();
+        }
+        $t->text('asset_office')->nullable();
+        $t->tinyInteger('form_type')->nullable();
+        $t->integer('created_by')->nullable();
+        $t->integer('updated_by')->nullable();
+        $flags($t);
+    });
+    $schema->create('security_mapping', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->integer('legal_id');
+        $t->integer('security_id');
+        $flags($t);
+    });
+    $schema->create('sec_roc_mapping', function (Blueprint $t) {
+        $t->id();
+        $t->integer('con_id');
+        $t->string('security_map_id');
+        $t->integer('section');
+        $t->tinyInteger('is_active')->default(1);
+        $t->integer('created_by')->nullable();
+        $t->dateTime('created_date')->nullable();
+    });
+    $schema->create('sec_roc_asset_type', function (Blueprint $t) {
+        $t->id();
+        $t->integer('con_id');
+        $t->integer('map_id');
+        foreach (['amount', 'charge_id', 'srn_no', 'remark', 'modify_reason', 'reson_modify_satisfy'] as $c) {
+            $t->string($c)->nullable();
+        }
+        $t->date('challan_date')->nullable();
+        foreach (['upload_id', 'challan_id', 'sign_id', 'modify_signed_roc_id', 'modify_challan_id', 'modify_certificate_id', 'modify_lender_noc_id', 'satisfy_signed_roc_id', 'satisfy_challan_id', 'satisfy_certificate_id', 'satisfy_lender_noc_id', 'created_by', 'updated_by'] as $c) {
+            $t->integer($c)->nullable();
+        }
+        $t->tinyInteger('status')->default(0);
+        $t->tinyInteger('is_active')->default(1);
+        $t->dateTime('created_date')->nullable();
+        $t->dateTime('updated_date')->nullable();
+    });
+    $schema->create('sec_cersai_asset_type', function (Blueprint $t) {
+        $t->id();
+        $t->integer('con_id');
+        $t->integer('map_id');
+        foreach (['amount', 'modify_reason', 'reson_modify_satisfy', 'type'] as $c) {
+            $t->string($c)->nullable();
+        }
+        $t->date('challan_date')->nullable();
+        $t->date('satisfaction_date')->nullable();
+        foreach (['asset_id', 'si_id', 'transaction_id', 'ack_id', 'modify_ack_id', 'modify_challan_id', 'satisfy_ack_id', 'satisfy_challan_id', 'satisfy_lender_noc_id', 'created_by', 'updated_by'] as $c) {
+            $t->bigInteger($c)->nullable();
+        }
+        $t->tinyInteger('status')->default(0);
+        $t->tinyInteger('is_active')->default(1);
+        $t->dateTime('created_date')->nullable();
+        $t->dateTime('updated_date')->nullable();
+    });
+    $schema->create('sec_pledge_asset_type', function (Blueprint $t) {
+        $t->id();
+        $t->integer('con_id');
+        $t->integer('map_id');
+        $t->integer('pledge_unpledge');
+        $t->date('pledge_unpledge_date')->nullable();
+        foreach (['isin', 'type', 'security_name', 'depository', 'pledgors_dp_name', 'pledgors_client_id', 'pledgee_dp_id', 'beacons_dp_id'] as $c) {
+            $t->string($c)->nullable();
+        }
+        foreach (['number_of_securities', 'face_value_per_security', 'pledgors_dp_id', 'pledgee_client_id', 'upload_pmr_file_id', 'created_by'] as $c) {
+            $t->bigInteger($c)->nullable();
+        }
+        $t->tinyInteger('is_active')->default(1);
+        $t->dateTime('created_date')->nullable();
+    });
+    $schema->create('executed_asset_owner_data', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->string('asset_owner_name');
+        $t->integer('con_id');
+        $flags($t);
+    });
+    $diligence = [
+        'due_dilligience_roc_search_data' => ['executed_asset_owner_id' => 'int', 'document' => 'str', 'issuing_authority_id' => 'int'],
+        'due_dilligience_security_certificate' => ['document' => 'str', 'issuing_authority_id' => 'int', 'udin_unique_number' => 'str'],
+        'due_dilligience_noc_document_data' => ['legal_id' => 'int', 'security_mapping_id' => 'int', 'security' => 'str', 'document' => 'str', 'charge_holder' => 'str', 'charge_id' => 'str'],
+        'due_dilligience_document_security_data' => ['legal_id' => 'int', 'security_mapping_id' => 'int', 'security' => 'str', 'issuing_authority_id' => 'int', 'udin_unique_no' => 'str'],
+        'due_dilligience_additional_data' => ['document' => 'str', 'description' => 'str'],
+        'due_dilligience_annexure_data' => ['annexure_type' => 'int', 'annexure_name' => 'str'],
+        'due_dilligience_upload_files' => ['type' => 'int', 'upload_id' => 'int', 'executed_asset_owner_id' => 'int', 'security_mapping_id' => 'int', 'legal_id' => 'int', 'additional_data_id' => 'int', 'is_verified' => 'int', 'verified_by' => 'int', 'verified_at' => 'date'],
+    ];
+    foreach ($diligence as $table => $columns) {
+        $schema->create($table, function (Blueprint $t) use ($flags, $columns) {
+            $t->id();
+            $t->integer('con_id');
+            foreach ($columns as $c => $type) {
+                match ($type) {
+                    'int' => $t->integer($c)->nullable(),
+                    'date' => $t->dateTime($c)->nullable(),
+                    default => $t->string($c)->nullable(),
+                };
+            }
+            $t->integer('created_by')->nullable();
+            $flags($t);
+        });
+    }
+
     $schema->create('pre_post_upload_map', function (Blueprint $t) {
         $t->integer('id');
         $t->string('section');

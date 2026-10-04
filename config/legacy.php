@@ -54,6 +54,20 @@ return [
         'executed_delete' => ['deals.view', 'deals.execution.manage'],
         'executed_verify' => ['deals.view', 'deals.execution.verify'],
 
+        // Security
+        'roc_view' => ['deals.view'],
+        'cersai_view' => ['deals.view'],
+        'pledge_view' => ['deals.view'],
+        'roc_add' => ['deals.view', 'deals.security.manage'],
+        'roc_edit' => ['deals.view', 'deals.security.manage'],
+        'cersai_add' => ['deals.view', 'deals.security.manage'],
+        'cersai_edit' => ['deals.view', 'deals.security.manage'],
+        'pledge_apledge' => ['deals.view', 'deals.security.manage'],
+        'pledge_edit' => ['deals.view', 'deals.security.manage'],
+        'roc_verify' => ['deals.view', 'deals.security.verify'],
+        'cersai_verify' => ['deals.view', 'deals.security.verify'],
+        'pledge_verify' => ['deals.view', 'deals.security.verify'],
+
         // Companies and masters
         'master' => ['masters.view', 'masters.manage', 'companies.view', 'companies.manage'],
     ],

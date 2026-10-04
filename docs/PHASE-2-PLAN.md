@@ -63,7 +63,11 @@ The original scope, for reference:
 - **Pickup list (deferred from M5):** deals whose executed documents are all verified, ready for custody. It joins the dashboard *Waiting on you* queue for the custody team.
 - Deal status: the step from Documentation to Live can be set to require execution to be complete. **Owner decision** (see §4).
 
-### M9: Security creation (M)
+### M9: Security creation (M) 🟡 built, owner review pending (2026-10-04)
+
+**Built:** masters for asset types, security types, charge types and empanelled agencies; legal documents say which kind of security they create; per-deal securities under their legal document (owner with CIN/PAN check, charge, asset type, what it's over, encumbrance, description, address); ROC / CERSAI / pledge registrations covering chosen securities with a create → modify → satisfy (pledge → release) history and the filing documents on each step; due diligence checklist (ROC search per asset owner, security certificate, NOC, security cover certificate, Annexure A/B, other) issued by empanelled agencies, with maker-checker verification; warning (not a block) when closing a deal with registrations in force; dashboard checks; God Mode editors; `legacy:import security`. Not built: registry search across deals, NeSL/DLT, and share monitoring (Phase 3).
+
+The original scope, for reference:
 - Per deal, a list of securities (charge type, asset type, value) with tracks for **ROC charge** (form, SRN, date, charge ID), **CERSAI** (asset ID, registration and satisfaction), **pledge** (DP ID, pledgee, shares, depository) and **DLT** where used.
 - Each track has a status flow (pending → filed → registered → satisfied) with documents and an activity log.
 - Leaving Live (redemption) can be blocked until securities are satisfied, or show a warning. **Owner decision.**
@@ -116,7 +120,7 @@ Compliance and monitoring (QCR, monthly/CTR, CDD/KYC, covenants, credit ratings)
 |---|---|---|
 | 1 | Stack's document masters were imported as they are (143 legal documents, 49 CP + 19 CS documents after merging repeated names). Clean-up can happen in *Masters*. Who makes and who checks documents (roles for *Documents & CP/CS: maker / checker*)? | M7 |
 | 2 | Must execution be complete before a deal can move Documentation → Live? (Built: the Execution tab suggests it; nothing blocks or moves it.) Stack's custody table (`stock_holding_data`) is empty in the local copy, so imported deals with every document verified show as *Ready for pickup*: mark the old ones picked up, or should the import do it? | M8 |
-| 3 | Must all securities be satisfied before a deal can be Redeemed / Closed, or is that only a warning? | M9 |
+| 3 | Must all securities be satisfied before a deal can be Redeemed / Closed, or is that only a warning? (Built: a warning on the status request.) Stack's ROC/CERSAI data includes obvious test entries (e.g. amount 12341234): delete those in God Mode, or should the import skip them? | M9 |
 | 4 | Which Stack schedule tables are current: `mon_paymt_*_sch` or `…_new`? Which day-count conventions are used in practice? | M10 |
 | 5 | Who receives ISIN payment reminders, and how many days ahead? | M10 |
 | 6 | **Where does invoicing live today?** Stack pushes billing data out (`tblpushbillingdata`, 26k rows, plus `einvoice-app` and `erp_database`). Does Nexora replace that system, or keep pushing to it? | M11 (**decides the size of M11**) |

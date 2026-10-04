@@ -5,6 +5,7 @@ namespace App\Actions\Documents;
 use App\Enums\ConditionStatus;
 use App\Enums\ExecutionStatus;
 use App\Models\DealCondition;
+use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
 use App\Models\DocumentFile;
@@ -26,7 +27,7 @@ class RemoveDocumentFile
     public function handle(DocumentFile $file, User $actor): void
     {
         $ownerClass = $file->attachable_type;
-        if (! in_array($ownerClass, [DealDocument::class, DealCondition::class, DealExecution::class], true)) {
+        if (! in_array($ownerClass, [DealDocument::class, DealCondition::class, DealExecution::class, DealDiligenceItem::class], true)) {
             throw ValidationException::withMessages(['file' => 'This file can\'t be removed here.']);
         }
 
@@ -34,7 +35,7 @@ class RemoveDocumentFile
             // Locks in the same order as every other document action: deal, item, file.
             $dealId = $ownerClass::query()->whereKey($file->attachable_id)->value('transaction_id');
             $deal = Transaction::query()->whereKey($dealId)->lockForUpdate()->first();
-            /** @var DealDocument|DealCondition|DealExecution|null $owner */
+            /** @var DealDocument|DealCondition|DealExecution|DealDiligenceItem|null $owner */
             $owner = $ownerClass::query()->whereKey($file->attachable_id)->lockForUpdate()->first();
             $locked = DocumentFile::query()->whereKey($file->id)->lockForUpdate()->firstOrFail();
 
@@ -47,7 +48,7 @@ class RemoveDocumentFile
             if ($locked->removed_at !== null) {
                 throw ValidationException::withMessages(['file' => 'This file has already been removed.']);
             }
-            if ($owner instanceof DealCondition && ! $owner->status->isOpen()) {
+            if (($owner instanceof DealCondition || $owner instanceof DealDiligenceItem) && ! $owner->status->isOpen()) {
                 throw ValidationException::withMessages(['file' => "Files of an item marked {$owner->status->label()} can't be removed."]);
             }
             if ($owner instanceof DealDocument && $owner->execution()->exists()) {
@@ -59,7 +60,7 @@ class RemoveDocumentFile
 
             $locked->update(['removed_at' => now(), 'removed_by' => $actor->id]);
 
-            if ($owner instanceof DealCondition && $owner->status === ConditionStatus::Submitted && $owner->currentFiles()->doesntExist()) {
+            if (($owner instanceof DealCondition || $owner instanceof DealDiligenceItem) && $owner->status === ConditionStatus::Submitted && $owner->currentFiles()->doesntExist()) {
                 $owner->update(['status' => ConditionStatus::Pending, 'submitted_by' => null, 'submitted_at' => null]);
             }
             if ($owner instanceof DealExecution && $owner->status === ExecutionStatus::Executed) {
