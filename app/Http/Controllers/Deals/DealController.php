@@ -2,13 +2,23 @@
 
 namespace App\Http\Controllers\Deals;
 
+use App\Enums\AllotmentKind;
 use App\Enums\ConditionStatus;
+use App\Enums\CouponType;
+use App\Enums\DayCount;
 use App\Enums\DealDocumentKind;
 use App\Enums\DealStatus;
 use App\Enums\DiligenceKind;
 use App\Enums\ExecutionStatus;
+use App\Enums\HolidayConvention;
+use App\Enums\IsinPaymentKind;
+use App\Enums\IsinPaymentStatus;
 use App\Enums\JobSheetStatus;
+use App\Enums\Listing;
 use App\Enums\OwnerIdType;
+use App\Enums\PaymentFrequency;
+use App\Enums\Placement;
+use App\Enums\RedemptionBasis;
 use App\Enums\RegistrationKind;
 use App\Enums\RegistrationStatus;
 use App\Enums\SecurityNature;
@@ -26,6 +36,7 @@ use App\Models\DealCondition;
 use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
+use App\Models\DealIsin;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealSecurity;
 use App\Models\DealStatusChange;
@@ -34,6 +45,8 @@ use App\Models\DealStatusVote;
 use App\Models\DocumentFile;
 use App\Models\EmpanelledAgency;
 use App\Models\EngagementLetter;
+use App\Models\IsinAllotment;
+use App\Models\IsinPayment;
 use App\Models\IssuingAuthority;
 use App\Models\JobSheetActivity;
 use App\Models\LegalDocumentType;
@@ -46,6 +59,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Tax\GstCalculator;
 use App\Services\Tax\TaxNotConfigured;
+use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -150,6 +164,7 @@ class DealController extends Controller
             'documentation' => $this->documentation($transaction, $user),
             'execution' => $this->execution($transaction, $user),
             'security' => $this->security($transaction, $user),
+            'isin' => $this->isin($transaction),
             'activity' => $this->activity($transaction),
             'can' => [
                 'editBilling' => $user->can('editDeal', $transaction),
@@ -164,6 +179,7 @@ class DealController extends Controller
                 'manageSecurity' => $user->can('manageSecurity', $transaction),
                 'satisfyRegistration' => $user->can('satisfyRegistration', $transaction),
                 'verifySecurity' => $user->can('verifySecurity', $transaction),
+                'manageIsin' => $user->can('manageIsin', $transaction),
             ],
         ]);
     }
@@ -680,6 +696,121 @@ class DealController extends Controller
     }
 
     /**
+     * The deal's ISINs with their allotments and schedules, and the form choices.
+     *
+     * @return array<string, mixed>
+     */
+    private function isin(Transaction $deal): array
+    {
+        $fileWith = ['uploader:id,name', 'remover:id,name'];
+        $isins = $deal->isins()
+            ->with([
+                'allotments.files' => fn ($q) => $q->with($fileWith),
+                'payments' => fn ($q) => $q->with(['recorder:id,name', 'files' => fn ($f) => $f->with($fileWith)])->withMax('reminders', 'sent_on'),
+            ])
+            ->orderBy('allotment_date')->orderBy('isin')->get();
+
+        return [
+            'isins' => $isins->map(function (DealIsin $i) {
+                $open = $i->payments->where('status', IsinPaymentStatus::Due);
+                $next = $open->first(fn (IsinPayment $p) => ! $p->due_on->isBefore(today()));
+
+                return [
+                    'id' => $i->ulid,
+                    'isin' => $i->isin,
+                    'series_name' => $i->series_name,
+                    'values' => [
+                        'isin' => $i->isin,
+                        'series_name' => $i->series_name,
+                        'listing' => $i->listing?->value,
+                        'exchange' => $i->exchange,
+                        'depository' => $i->depository,
+                        'placement' => $i->placement?->value,
+                        'allotment_date' => $i->allotment_date?->toDateString(),
+                        'maturity_date' => $i->maturity_date?->toDateString(),
+                        'coupon_type' => $i->coupon_type?->value,
+                        'coupon_rate' => $i->coupon_rate,
+                        'coupon_description' => $i->coupon_description,
+                        'interest_frequency' => $i->interest_frequency?->value,
+                        'principal_frequency' => $i->principal_frequency?->value,
+                        'day_count' => $i->day_count?->value,
+                        'holiday_convention' => $i->holiday_convention?->value,
+                        'put_date' => $i->put_date?->toDateString(),
+                        'call_date' => $i->call_date?->toDateString(),
+                        'comments' => $i->comments,
+                    ],
+                    'facts' => array_filter([
+                        'Listing' => trim(($i->listing?->label() ?? '').($i->exchange ? " · {$i->exchange}" : '')) ?: null,
+                        'Depository' => $i->depository,
+                        'Placement' => $i->placement?->label(),
+                        'Coupon' => trim(($i->coupon_type?->label() ?? '').($i->coupon_rate !== null ? ' '.rtrim(rtrim($i->coupon_rate, '0'), '.').'%' : '').($i->coupon_description ? " · {$i->coupon_description}" : '')) ?: null,
+                        'Interest' => $i->interest_frequency?->label(),
+                        'Principal' => $i->principal_frequency?->label(),
+                        'Day count' => $i->day_count?->label(),
+                        'Weekends' => $i->holiday_convention?->label(),
+                        'Put' => $i->put_date?->format('d M Y'),
+                        'Call' => $i->call_date?->format('d M Y'),
+                    ]),
+                    'allotment_date' => $i->allotment_date?->toDateString(),
+                    'maturity_date' => $i->maturity_date?->toDateString(),
+                    'comments' => $i->comments,
+                    'redeemed' => $i->isRedeemed(),
+                    'allotted_quantity' => (int) $i->allotments->sum('quantity_allotted'),
+                    'allotted_amount' => $i->allotments->reduce(fn (BigDecimal $sum, IsinAllotment $a) => $sum->plus($a->amount), BigDecimal::zero())->toScale(2)->__toString(),
+                    'next_due' => $next ? ['kind' => $next->kind->label(), 'due_on' => $next->due_on->toDateString()] : null,
+                    'overdue' => $open->filter(fn (IsinPayment $p) => $p->isOverdue())->count(),
+                    'allotments' => $i->allotments->map(fn (IsinAllotment $a) => [
+                        'id' => $a->id,
+                        'kind_label' => $a->kind->label(),
+                        'allotment_date' => $a->allotment_date->toDateString(),
+                        'face_value' => $a->face_value,
+                        'quantity_allotted' => $a->quantity_allotted,
+                        'quantity_offered' => $a->quantity_offered,
+                        'amount' => $a->amount,
+                        'credit' => $a->credit_depository ? trim($a->credit_depository.($a->credited_on ? ' · '.$a->credited_on->format('d M Y') : '')) : null,
+                        'files' => $a->files->map(fn (DocumentFile $f) => $f->present())->values(),
+                    ])->values(),
+                    'payments' => $i->payments->map(fn (IsinPayment $p) => [
+                        'id' => $p->id,
+                        'kind' => $p->kind->value,
+                        'kind_label' => $p->kind->label(),
+                        'due_on' => $p->due_on->toDateString(),
+                        'original_due_on' => $p->original_due_on?->toDateString(),
+                        'due_date_reason' => $p->due_date_reason,
+                        'status' => $p->status->value,
+                        'status_label' => $p->status->label(),
+                        'status_tone' => $p->isOverdue() ? 'danger' : $p->status->tone(),
+                        'overdue' => $p->isOverdue(),
+                        'paid_on' => $p->paid_on?->toDateString(),
+                        'amount' => $p->amount,
+                        'face_value' => $p->face_value,
+                        'quantity' => $p->quantity,
+                        'redemption_basis' => $p->redemption_basis?->label(),
+                        'remark' => $p->remark,
+                        'recorded_by' => $p->recorder?->name,
+                        'files' => $p->files->map(fn (DocumentFile $f) => $f->present())->values(),
+                        'last_reminded' => $p->getAttribute('reminders_max_sent_on'),
+                    ])->values(),
+                ];
+            }),
+            'options' => [
+                'listings' => Listing::options(),
+                'placements' => Placement::options(),
+                'coupon_types' => CouponType::options(),
+                'frequencies' => PaymentFrequency::options(),
+                'day_counts' => DayCount::options(),
+                'holiday_conventions' => HolidayConvention::options(),
+                'kinds' => IsinPaymentKind::options(),
+                'outcomes' => array_values(array_filter(IsinPaymentStatus::options(), fn (array $o) => $o['value'] !== IsinPaymentStatus::Due->value)),
+                'redemption_bases' => RedemptionBasis::options(),
+                'allotment_kinds' => AllotmentKind::options(),
+            ],
+            'reminder_days' => (int) config('isin.reminder_days'),
+            'reminder_overdue_days' => (int) config('isin.reminder_overdue_days'),
+        ];
+    }
+
+    /**
      * Activity log entries for the deal, its billing and its job sheet, plus status changes, newest first.
      *
      * @return list<array<string, mixed>>
@@ -696,6 +827,8 @@ class DealController extends Controller
             DealSecurity::class => $deal->securities()->withTrashed()->pluck('id')->all(),
             SecurityRegistration::class => $deal->registrations()->pluck('id')->all(),
             DealDiligenceItem::class => $deal->diligenceItems()->pluck('id')->all(),
+            DealIsin::class => $deal->isins()->pluck('id')->all(),
+            IsinPayment::class => IsinPayment::query()->whereIn('deal_isin_id', $deal->isins()->pluck('id'))->pluck('id')->all(),
         ];
 
         $logs = Activity::query()
@@ -720,6 +853,7 @@ class DealController extends Controller
                     DealExecution::class => 'Execution',
                     DealSecurity::class, SecurityRegistration::class => 'Security',
                     DealDiligenceItem::class => 'Due diligence',
+                    DealIsin::class, IsinPayment::class => 'ISIN',
                     default => 'Transaction',
                 },
                 'event' => $a->event ?? $a->description,

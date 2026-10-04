@@ -78,6 +78,8 @@ php artisan serve           # skip if you use the WAMP vhost
 php artisan queue:listen    # needed once mails/PDFs are queued
 ```
 
+Scheduled jobs (the daily ISIN payment reminders, `isin:send-reminders`) need the scheduler. Locally, run `php artisan schedule:work` in another terminal when you want them; on a server, add one cron entry (`* * * * * php /path/to/nexora/artisan schedule:run`) and keep a queue worker running, since reminder emails are queued.
+
 ---
 
 ## Environment notes

@@ -1,6 +1,7 @@
 import { BillingPanel } from '@/Components/deals/billing-panel';
 import { DocumentationPanel } from '@/Components/deals/documentation-panel';
 import { ExecutionPanel } from '@/Components/deals/execution-panel';
+import { IsinPanel } from '@/Components/deals/isin-panel';
 import { SecurityPanel } from '@/Components/deals/security-panel';
 import { JobSheetPanel } from '@/Components/deals/job-sheet-panel';
 import { StatusPanel } from '@/Components/deals/status-panel';
@@ -20,7 +21,6 @@ const dash = <span className="text-subtle-foreground">—</span>;
 
 /** Areas of the deal that arrive with the Phase 2 modules. */
 const LATER = [
-    ['isin', 'ISIN'],
     ['covenants', 'Covenants'],
     ['credit-rating', 'Credit rating'],
     ['outward', 'Outward'],
@@ -176,6 +176,7 @@ export default function DealShow({
     documentation,
     execution,
     security,
+    isin,
     activity,
     can,
 }) {
@@ -214,6 +215,7 @@ export default function DealShow({
                         <TabsTrigger value="documentation">Documentation</TabsTrigger>
                         <TabsTrigger value="execution">Execution</TabsTrigger>
                         <TabsTrigger value="security">Security</TabsTrigger>
+                        <TabsTrigger value="isin">ISIN</TabsTrigger>
                         <TabsTrigger value="job-sheet">Job sheet</TabsTrigger>
                         <TabsTrigger value="activity">Activity</TabsTrigger>
                         {LATER.map(([value, label]) => (
@@ -245,6 +247,9 @@ export default function DealShow({
                 </TabsContent>
                 <TabsContent value="security">
                     <SecurityPanel dealId={deal.id} security={security} can={can} />
+                </TabsContent>
+                <TabsContent value="isin">
+                    <IsinPanel dealId={deal.id} isin={isin} can={can} />
                 </TabsContent>
                 <TabsContent value="job-sheet">
                     <JobSheetPanel dealId={deal.id} rows={jobSheet} can={can} />

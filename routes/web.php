@@ -15,8 +15,10 @@ use App\Http\Controllers\Deals\DealConditionController;
 use App\Http\Controllers\Deals\DealController;
 use App\Http\Controllers\Deals\DealDocumentController;
 use App\Http\Controllers\Deals\DealExecutionController;
+use App\Http\Controllers\Deals\DealIsinController;
 use App\Http\Controllers\Deals\DealSecurityController;
 use App\Http\Controllers\Deals\DealStatusController;
+use App\Http\Controllers\Deals\IsinController;
 use App\Http\Controllers\Deals\JobSheetController;
 use App\Http\Controllers\GodMode\GodModeController;
 use App\Http\Controllers\GodMode\GodModeLetterController;
@@ -82,6 +84,10 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
         });
     });
 
+    // Every ISIN across deals (Stack's ISIN MIS) and its Excel export.
+    Route::get('isins', [IsinController::class, 'index'])->name('isins.index');
+    Route::get('isins/export', [IsinController::class, 'export'])->name('isins.export');
+
     // Once the engagement letter is issued, a transaction is worked on as a deal.
     Route::prefix('deals')->name('deals.')->group(function () {
         Route::get('/', [DealController::class, 'index'])->name('index');
@@ -124,6 +130,16 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
             Route::post('{transaction}/diligence/{item}/files', 'uploadDiligence')->name('diligence.upload');
             Route::post('{transaction}/diligence/{item}/check', 'checkDiligence')->name('diligence.check');
             Route::delete('{transaction}/diligence/{item}', 'removeDiligence')->name('diligence.destroy');
+        });
+        Route::controller(DealIsinController::class)->group(function () {
+            Route::post('{transaction}/isins', 'store')->name('isins.store');
+            Route::put('{transaction}/isins/{isin}', 'update')->name('isins.update');
+            Route::post('{transaction}/isins/{isin}/allotments', 'allot')->name('isins.allot');
+            Route::post('{transaction}/isins/{isin}/schedule', 'schedule')->name('isins.schedule');
+            Route::post('{transaction}/isin-reminders', 'remind')->name('isins.remind');
+            Route::put('{transaction}/isin-payments/{payment}/due-date', 'move')->name('isin-payments.move');
+            Route::post('{transaction}/isin-payments/{payment}/record', 'record')->name('isin-payments.record');
+            Route::delete('{transaction}/isin-payments/{payment}', 'destroy')->name('isin-payments.destroy');
         });
     });
     Route::prefix('deal-status-requests/{statusRequest}')->name('deals.status.')->controller(DealStatusController::class)->group(function () {

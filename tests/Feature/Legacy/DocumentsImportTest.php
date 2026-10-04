@@ -133,7 +133,8 @@ test('masters, deal documents and CP/CS items come over with their files', funct
     expect($dtd->currentFile->original_name)->toBe('DTD executed.pdf')
         ->and($dtd->currentFile->isAvailable())->toBeFalse() // no uploads copy configured
         ->and($dtd->files()->whereNotNull('removed_at')->value('original_name'))->toBe('DTD draft.pdf');
-    $copies = DealDocument::query()->where('transaction_id', $deal->id)->where('kind', DealDocumentKind::Additional)->orderBy('sequence')->pluck('sequence')->all();
+    $copies = DealDocument::query()->where('transaction_id', $deal->id)->where('kind', DealDocumentKind::Additional)
+        ->where('legal_document_type_id', LegalDocumentType::query()->where('legacy_id', 14)->value('id'))->orderBy('sequence')->pluck('sequence')->all();
     expect($copies)->toBe([1, 2]) // the second "-1" is renumbered
         ->and(DealDocument::query()->where('legacy_id', 501)->sole()->currentFile->original_name)->toBe('Supplement.pdf')
         ->and(DealDocument::query()->where('legacy_id', 504)->sole()->type->name)->toBe('Other document');

@@ -347,6 +347,23 @@ What the deal is secured by, where each security is registered, and the due dili
 - **Due diligence:** **Add item**: a ROC search report (for an asset owner), a security certificate or NOC (for a security), the security cover certificate, Annexure A / B, or another document, with the empanelled agency that issued it and its UDIN. **Upload** sends it for checking; a **checker** (never the uploader) verifies it or sends it back.
 - When you request a final status (Redeemed, Closed …) while registrations are still in force, the request form reminds you to record their satisfaction.
 
+### ISIN
+The debentures issued under the deal and their interest and principal payments. Everything here needs *ISIN: maintain ISINs, schedules and payments*.
+- **Add ISIN:** the ISIN (checked, including its last check digit), series, listing and exchange, depository, placement, allotment and maturity dates, coupon (type, rate %, notes), how often interest and principal are paid, the day count, what happens to a due date on a weekend (stays, previous or next working day) and any put / call date. An ISIN can be on a deal once. Leave maturity blank for a perpetual ISIN.
+- **Allotment:** the initial allotment first, then any further tranches: date, face value and quantity allotted (the amount is worked out), and optionally the depository credit (NSDL / CDSL, date, proof).
+- **Add due dates**, three ways:
+  - **From a frequency:** pick interest or principal, the first due date and the frequency. Every period up to maturity is added, with maturity as the last date. A month-end date stays on the month end (31 Jan → 28 Feb → 31 Mar).
+  - **From a file:** a CSV in Stack's format, with *Principal Schedule* and/or *Interest Schedule* columns, one date per row (for example 31-03-2026). If any row isn't a date, or a date is outside allotment and maturity, the whole file is refused with the line numbers, and nothing is added.
+  - **One date.**
+  Dates already in the schedule are skipped.
+- **Move** a due date with a reason (the original date is kept and shown), or **remove** it (✕). Only dates still *Due* can change.
+- **Record** what happened on a date: **Paid** (date paid and amount; for principal, also how it was redeemed: full, by face value or by quantity), **Defaulted** or **Redeemed earlier**, with a remark and proof (UTR advice, letters …). Once recorded, a date is final; corrections go through God Mode.
+- The tab shows overdue dates and the next few; **Show the full schedule** lists every date.
+- **Reminders:** every morning (08:30) the deal's team and its RM get one email listing payments due in the next 7 days or overdue by up to 30 days. **Send reminder** sends it now. A payment is reminded about at most once a day.
+
+### ISINs list
+**ISINs** in the sidebar lists every ISIN across deals with its next due date and how many payments are overdue, ISINs with something due first. Search by ISIN, series, company or EL number; filter to *Overdue* or *Due in the next 30 days*; **Excel** downloads the list as filtered.
+
 ### Job sheet
 The checklist of activities for the deal (from *Masters → Job sheet activities*).
 - The **maker** (*Job sheet: maker*) clicks **Record**, enters the date the item was received and a comment, and sends it for checking.
@@ -354,15 +371,15 @@ The checklist of activities for the deal (from *Masters → Job sheet activities
 - A sent-back entry can be corrected and resubmitted. A verified entry is final.
 
 ### Activity
-Everything that happened on the deal, newest first: status changes, billing changes, job sheet entries, documents, CP/CS items, executions, securities, registrations and due diligence, with who did it and when.
+Everything that happened on the deal, newest first: status changes, billing changes, job sheet entries, documents, CP/CS items, executions, securities, registrations, due diligence, ISINs and payments, with who did it and when.
 
 ---
 
 ## 13. Your dashboard
 
 **Dashboard** is the first page after sign-in.
-- **Headline numbers** (if you can see deals or transactions): open deals, live deals, deals opened this financial year, issue size under trusteeship, drafts and transactions pending approval. Click a number to open the matching list.
-- **Waiting on you:** transactions to approve, deal status changes waiting for your team, job sheet entries, CP/CS items, executed copies and due diligence items to check, your work that was sent back, documents you sign for Beacon, and (for custody) deals ready for pickup. Oldest first; click one to go straight to it.
+- **Headline numbers** (if you can see deals or transactions): open deals, live deals, deals opened this financial year, debenture payments overdue, issue size under trusteeship, drafts and transactions pending approval. Click a number to open the matching list.
+- **Waiting on you:** transactions to approve, deal status changes waiting for your team, job sheet entries, CP/CS items, executed copies and due diligence items to check, your work that was sent back, documents you sign for Beacon, (for custody) deals ready for pickup, and (for ISIN) overdue debenture payments. Oldest first; click one to go straight to it.
 
 ---
 
@@ -370,7 +387,7 @@ Everything that happened on the deal, newest first: status changes, billing chan
 
 **Administration → God Mode** (super-admins only). Corrects any business record when the normal screens can't, for example a deal that's already active or a letter that went out with a mistake. If you entered your 2FA code more than 15 minutes ago, you're asked for a fresh one first.
 
-- **Find the record:** search by company name, CIN, PAN, GSTIN, EL number (including old, retired ones) or deal code. A company page lists its GSTINs, addresses, contacts and transactions; a deal page lists its basics, letter contacts, issue details, fees, billing, status, job sheet, legal documents, CP/CS items and executions. For documents you can correct the name; for CP/CS items the name, issuing authority, due date and comments; for executions the place, dates and comments; for securities every detail of the security form; for registrations the reference, amount and pledge details; for due diligence items the title, agency, UDIN and comments (statuses, filings and files stay as they happened).
+- **Find the record:** search by company name, CIN, PAN, GSTIN, EL number (including old, retired ones) or deal code. A company page lists its GSTINs, addresses, contacts and transactions; a deal page lists its basics, letter contacts, issue details, fees, billing, status, job sheet, legal documents, CP/CS items and executions. For documents you can correct the name; for CP/CS items the name, issuing authority, due date and comments; for executions the place, dates and comments; for securities every detail of the security form; for registrations the reference, amount and pledge details; for due diligence items the title, agency, UDIN and comments (statuses, filings and files stay as they happened); for ISINs every detail of the ISIN form; for ISIN payments the due date, outcome, date paid and amounts, even once recorded (the page lists payments already settled or due within 90 days).
 - **Correct it:** click **Correct**, change the values and give a **reason**. The values are checked exactly as on the normal screen, so God Mode can't save anything the regular form would refuse. If someone else changed the record after you opened the page, reload and try again.
 - **Undo:** each correction in the **Change history** has an **Undo** button. It puts the old values back (checked against today's rules) and is refused if the record has changed since. The undo is logged too. Some changes can't be undone this way (a forced status change, the first fees on a deal); make a new correction instead.
 - **Follow-ups:** correcting the issue or fees rebuilds the fee schedule. Check it on the normal view, then click **Verify schedule**. If data printed in the letter changed after its latest version, you're told the letter may be out of date.
@@ -395,6 +412,7 @@ At go-live, users, roles, masters, companies, Debenture Trustee deals and their 
 - **Documentation:** each deal's legal documents (with supplements, amendments and copies) and its CP/CS items arrive with their status and files. Files show **(not copied from Stack yet)** until the files are brought over. Items Stack's older system listed twice on a deal are merged into one, keeping all files. Stack's "WIP" items are *Awaiting check*.
 - **Execution:** each document's execution comes over with its schedule, signatory, executed copy and verification. Where Stack had several execution rows for one document, the verified one (or the latest) is kept. Stack's "Client" signatory and POA holders who only appear in executions are listed under *Masters → POA holders* (the latter inactive).
 - **Security:** securities come from Stack's per-document security details (Stack's ~2,400 empty placeholder rows are skipped), with ROC, CERSAI and pledge registrations, their filings and documents, and the due diligence items with their files.
+- **ISINs:** each deal's ISINs, allotments and interest / principal schedules come over with what was paid and the proof files. Stack's test entries ("test 29 april" …) are left out; an ISIN or due date Stack listed twice is merged (a settled entry wins). Perpetual ISINs, which Stack gave a maturity of 30 Sep 9999, have a blank maturity, and their dates after 2100 are left out. Many old payments were never marked paid in Stack, so they show as **overdue**; settle them through God Mode once confirmed.
 - **Placeholders:** a user email like `user-123@legacy.invalid` means Stack had no usable email for that person. Ask an administrator to correct it.
 
 ---

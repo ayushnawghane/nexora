@@ -57,8 +57,11 @@ class ExecutionImporter extends Importer
 
     protected function import(): void
     {
-        $this->importUser = (int) (User::query()->withTrashed()->where('emp_code', 'LEGACY-IMPORT')->value('id')
-            ?? throw new \RuntimeException('Import the transactions area first: the Stack import user is missing.'));
+        $user = $this->importUser();
+        if ($user === null) {
+            return;
+        }
+        $this->importUser = $user;
 
         $this->poaHolders();
 

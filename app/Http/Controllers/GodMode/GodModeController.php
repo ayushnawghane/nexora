@@ -7,6 +7,7 @@ use App\Actions\GodMode\MakeCorrection;
 use App\Actions\GodMode\RollBackCorrection;
 use App\Actions\Transactions\VerifySchedule;
 use App\Enums\FeeStartReference;
+use App\Enums\IsinPaymentStatus;
 use App\Enums\TransactionStatus;
 use App\GodMode\Editors;
 use App\Http\Controllers\Controller;
@@ -20,11 +21,13 @@ use App\Models\DealCondition;
 use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
+use App\Models\DealIsin;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealSecurity;
 use App\Models\EngagementLetter;
 use App\Models\FeeLine;
 use App\Models\GodModeChange;
+use App\Models\IsinPayment;
 use App\Models\RetiredElNumber;
 use App\Models\SecurityRegistration;
 use App\Models\Transaction;
@@ -33,6 +36,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -83,7 +87,7 @@ class GodModeController extends Controller
 
     public function transaction(Transaction $transaction): Response
     {
-        $transaction->load(['company:id,ulid,name', 'jobSheetEntries.activity:id,name', 'dealDocuments', 'conditions', 'executions.document', 'securities.securityTypes', 'registrations', 'diligenceItems']);
+        $transaction->load(['company:id,ulid,name', 'jobSheetEntries.activity:id,name', 'dealDocuments', 'conditions', 'executions.document', 'securities.securityTypes', 'registrations', 'diligenceItems', 'isins.payments']);
         $item = fn (string $editor, $record, string $title, ?string $subtitle = null, ?string $id = null) => [
             ...Editors::present(Editors::get($editor), $record, $id ?? (string) $record->getKey()),
             'title' => $title,
@@ -117,6 +121,13 @@ class GodModeController extends Controller
                 ->map(fn (DealSecurity $s) => $item('deal-security', $s, $s->summary(), $s->nature->label()))
                 ->concat($transaction->registrations->map(fn (SecurityRegistration $r) => $item('security-registration', $r,
                     $r->kind->label().($r->reference ? " {$r->reference}" : ''), $r->status->label($r->kind))))
+                ->values()];
+            // Payments that are settled or due within 90 days (a long schedule would swamp the page).
+            $sections[] = ['title' => 'ISINs', 'items' => $transaction->isins
+                ->flatMap(fn (DealIsin $i) => collect([$item('deal-isin', $i, $i->isin, $i->series_name ? Str::limit($i->series_name, 60) : null)])
+                    ->concat($i->payments
+                        ->filter(fn (IsinPayment $p) => $p->status !== IsinPaymentStatus::Due || $p->due_on->isBefore(today()->addDays(90)))
+                        ->map(fn (IsinPayment $p) => $item('isin-payment', $p, "{$i->isin} · {$p->kind->label()} {$p->due_on->format('d M Y')}", $p->status->label()))))
                 ->values()];
             $sections[] = ['title' => 'Due diligence', 'items' => $transaction->diligenceItems
                 ->map(fn (DealDiligenceItem $d) => $item('diligence-item', $d, $d->title, "{$d->kind->label()} · {$d->status->label()}"))->values()];

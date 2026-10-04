@@ -368,6 +368,14 @@ class Transaction extends Model
         return $this->hasMany(DealDiligenceItem::class);
     }
 
+    /**
+     * @return HasMany<DealIsin, $this>
+     */
+    public function isins(): HasMany
+    {
+        return $this->hasMany(DealIsin::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

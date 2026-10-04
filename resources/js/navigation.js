@@ -2,6 +2,7 @@ import {
     Briefcase,
     Building2,
     FileSignature,
+    Landmark,
     LayoutDashboard,
     Library,
     Percent,
@@ -48,6 +49,7 @@ export const navigation = [
                 ],
             },
             { title: 'Deals', route: 'deals.index', permission: 'deals.view', icon: Briefcase },
+            { title: 'ISINs', route: 'isins.index', permission: 'deals.view', icon: Landmark },
             {
                 title: 'Approvals',
                 route: 'approvals.index',

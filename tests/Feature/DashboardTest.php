@@ -22,8 +22,9 @@ test('the dashboard shows deal and transaction counts to people who can see them
         ->where('kpis.0.key', 'open')->where('kpis.0.value', 2)
         ->where('kpis.1.key', 'live')->where('kpis.1.value', 1)
         ->where('kpis.2.value', 3)
-        ->where('kpis.3.value', '4000000000.00')
-        ->where('kpis.4.key', 'drafts')->where('kpis.4.value', 1));
+        ->where('kpis.3.key', 'overdue_payments')->where('kpis.3.value', 0)
+        ->where('kpis.4.key', 'issue')->where('kpis.4.value', '4000000000.00')
+        ->where('kpis.5.key', 'drafts')->where('kpis.5.value', 1));
 });
 
 test('a user without those permissions sees no numbers and an empty queue', function () {

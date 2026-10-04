@@ -49,6 +49,7 @@ return [
                 'deals.execution.custody' => 'Execution: pickup list (custody of executed documents)',
                 'deals.security.manage' => 'Security: record securities, registrations and due diligence',
                 'deals.security.verify' => 'Security: due diligence checker (verify, send back)',
+                'deals.isin.manage' => 'ISIN: maintain ISINs, schedules and payments; send reminders',
             ],
         ],
         'companies' => [

@@ -2,6 +2,8 @@
 
 namespace App\Legacy;
 
+use App\Models\Transaction;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -31,6 +33,25 @@ abstract class Importer
     {
         $this->report = $report;
         $this->import();
+    }
+
+    /**
+     * The "Stack import" user that the transactions area creates, recorded as the author of rows
+     * whose Stack author is unknown. Null when no Stack deal has been imported yet: areas that hang
+     * off deals then have nothing to do, and the report says so.
+     */
+    protected function importUser(): ?int
+    {
+        $id = User::query()->withTrashed()->where('emp_code', 'LEGACY-IMPORT')->value('id');
+        if ($id !== null) {
+            return (int) $id;
+        }
+        if (Transaction::query()->whereNotNull('legacy_id')->exists()) {
+            throw new \RuntimeException('The Stack import user is missing: run the transactions area again.');
+        }
+        $this->report->total('Skipped', 'no Stack deals imported yet (run the transactions area first)');
+
+        return null;
     }
 
     /**

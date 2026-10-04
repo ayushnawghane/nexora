@@ -3,6 +3,8 @@
 use App\Enums\ConditionStage;
 use App\Enums\ConditionStatus;
 use App\Enums\DealStatus;
+use App\Enums\IsinPaymentKind;
+use App\Enums\IsinPaymentStatus;
 use App\Enums\StatusRequestState;
 use App\Enums\TransactionStatus;
 use App\Models\Company;
@@ -218,4 +220,41 @@ test('a CP/CS item can be corrected, keeping the deal-wide name rule; its status
         ->and($item->due_on->toDateString())->toBe('2025-10-31')
         ->and($item->status)->toBe(ConditionStatus::Verified)
         ->and(GodModeChange::query()->latest('id')->value('editor'))->toBe('deal-condition');
+});
+
+test('an ISIN and a settled payment can be corrected; a moved due date keeps the original, and undoing clears it', function () {
+    godUser();
+    $deal = Transaction::factory()->deal(DealStatus::Live)->create();
+    $make = fn (string $code) => $deal->isins()->create(['isin' => $code, 'maturity_date' => '2028-06-15', 'created_by' => $deal->created_by]);
+    $isin = $make('INE471X07014');
+    $make('INE002A01018');
+    $payment = $isin->payments()->create([
+        'kind' => IsinPaymentKind::Interest, 'due_on' => '2025-09-15', 'status' => IsinPaymentStatus::Paid,
+        'paid_on' => '2025-09-15', 'amount' => '350000', 'created_by' => $deal->created_by,
+    ]);
+    $isin->payments()->create(['kind' => IsinPaymentKind::Interest, 'due_on' => '2025-12-15', 'status' => IsinPaymentStatus::Due, 'created_by' => $deal->created_by]);
+
+    $this->get("/god-mode/transactions/{$deal->ulid}")->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('sections', fn ($sections) => collect($sections)->firstWhere('title', 'ISINs')['items'] !== []));
+
+    correct('deal-isin', (string) $isin->id, ['isin' => 'INE002A01018'])->assertSessionHasErrors(['isin' => 'This ISIN is already on the deal.']);
+    correct('deal-isin', (string) $isin->id, ['isin' => 'INE471X07015'])->assertSessionHasErrors('isin');
+    correct('deal-isin', (string) $isin->id, ['coupon_rate' => '9.75'])->assertSessionHasNoErrors();
+    expect($isin->fresh()->coupon_rate)->toBe('9.7500');
+
+    correct('isin-payment', (string) $payment->id, ['due_on' => '2025-12-15'])->assertSessionHasErrors('due_on'); // taken
+    correct('isin-payment', (string) $payment->id, ['status' => 'paid', 'amount' => null])->assertSessionHasErrors('amount');
+    correct('isin-payment', (string) $payment->id, ['due_on' => '2025-09-16', 'amount' => '351000.50'])->assertSessionHasNoErrors();
+    $payment->refresh();
+    expect($payment->due_on->toDateString())->toBe('2025-09-16')
+        ->and($payment->original_due_on->toDateString())->toBe('2025-09-15')
+        ->and($payment->amount)->toBe('351000.50');
+
+    $change = GodModeChange::query()->latest('id')->first();
+    expect($change->editor)->toBe('isin-payment');
+    $this->post("/god-mode/changes/{$change->ulid}/rollback", ['reason' => 'Issuer confirmed the 15th'])->assertSessionHasNoErrors();
+    $payment->refresh();
+    expect($payment->due_on->toDateString())->toBe('2025-09-15')
+        ->and($payment->original_due_on)->toBeNull()
+        ->and($payment->amount)->toBe('350000.00');
 });

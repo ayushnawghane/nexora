@@ -96,4 +96,26 @@ final class IndianIdentifiers
     {
         return substr($gstin, 2, 10);
     }
+
+    /**
+     * An Indian ISIN: "IN", nine letters or digits, and a check digit. Letters count as 10–35; the
+     * digits are run through the Luhn check (every second digit from the right doubled).
+     */
+    public static function isIsin(string $value): bool
+    {
+        if (preg_match('/^IN[A-Z0-9]{9}[0-9]$/', $value) !== 1) {
+            return false;
+        }
+        $digits = '';
+        foreach (str_split(substr($value, 0, 11)) as $char) {
+            $digits .= ctype_digit($char) ? $char : (string) (ord($char) - 55);
+        }
+        $sum = 0;
+        foreach (array_reverse(str_split($digits)) as $i => $digit) {
+            $n = (int) $digit * ($i % 2 === 0 ? 2 : 1);
+            $sum += intdiv($n, 10) + $n % 10;
+        }
+
+        return (10 - $sum % 10) % 10 === (int) $value[11];
+    }
 }

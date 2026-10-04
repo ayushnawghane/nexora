@@ -561,6 +561,67 @@ function legacySchema(): void
         });
     }
 
+    // ISIN (the `_new` tables Stack uses now).
+    $schema->create('mon_payment_schedule_new', function (Blueprint $t) {
+        $t->id();
+        $t->integer('con_id');
+        foreach (['isin', 'seriesname', 'stock_exchange', 'depository', 'base_coupon_rate', 'coupon_desc', 'couponrate', 'put_date', 'call_date', 'comments', 'int_comments'] as $c) {
+            $t->string($c)->nullable();
+        }
+        $t->enum('interest_weekend', ['precede', 'succeed'])->nullable();
+        $t->enum('principal_weekend', ['precede', 'succeed'])->nullable();
+        foreach (['principal_frequency', 'interest_frequency', 'listing_status', 'placement_type', 'year_convention_int', 'user_id'] as $c) {
+            $t->integer($c)->nullable();
+        }
+        $t->date('allotmentdate')->nullable();
+        $t->date('payment_redumtion_date')->nullable();
+        $t->tinyInteger('active')->default(1);
+        $t->timestamp('ts')->nullable();
+    });
+    $schema->create('mon_isin_details_new', function (Blueprint $t) {
+        $t->id();
+        $t->integer('con_id');
+        $t->integer('mon_id')->nullable();
+        $t->string('type', 50)->nullable();
+        $t->date('issue_opening_date')->nullable();
+        $t->date('issue_closing_date')->nullable();
+        $t->decimal('face_value', 18, 2)->nullable();
+        $t->integer('qty_issued')->nullable();
+        $t->integer('qty_subscribed')->nullable();
+        $t->decimal('subscription_total', 18, 2)->nullable();
+        $t->date('allotment_date')->nullable();
+        $t->tinyInteger('is_active')->default(1);
+        $t->integer('created_by')->nullable();
+        $t->dateTime('created_date')->nullable();
+    });
+    $schema->create('mon_payment_listing_new', function (Blueprint $t) {
+        $t->id();
+        $t->integer('con_id');
+        $t->integer('allotment_id');
+        $t->string('type', 50)->nullable();
+        $t->date('listing_date')->nullable();
+        $t->string('upload_id', 200)->nullable();
+        $t->tinyInteger('is_active')->default(1);
+    });
+    $schedule = fn (string $table, array $columns) => $schema->create($table, function (Blueprint $t) use ($columns) {
+        $t->id();
+        $t->integer('con_id');
+        $t->integer('pay_schedule_id')->nullable();
+        $t->date($columns['due'])->nullable();
+        $t->date($columns['paid'])->nullable();
+        foreach ([$columns['status'], $columns['remark'], $columns['basis'], $columns['amount'], $columns['fv'], $columns['qty']] as $c) {
+            $t->string($c)->nullable();
+        }
+        foreach (['upload_id', 'dlt_upload_id', 'user_id', 'created_by', 'updated_by'] as $c) {
+            $t->integer($c)->nullable();
+        }
+        $t->tinyInteger('active')->default(1);
+        $t->dateTime('created_at')->nullable();
+        $t->dateTime('updated_at')->nullable();
+    });
+    $schedule('mon_paymt_interst_sch_new', ['due' => 'in_due_date', 'paid' => 'in_paid_date', 'status' => 'in_status', 'remark' => 'in_remark', 'basis' => 'intrest_redemp_type', 'amount' => 'intrest_total_amnt', 'fv' => 'interest_face_value', 'qty' => 'interest_qty']);
+    $schedule('mon_paymt_prin_sch_new', ['due' => 'due_date', 'paid' => 'paid_date', 'status' => 'status', 'remark' => 'prin_remark', 'basis' => 'redemp_type', 'amount' => 'prin_total_amnt', 'fv' => 'prin_face_value', 'qty' => 'prin_qty']);
+
     $schema->create('pre_post_upload_map', function (Blueprint $t) {
         $t->integer('id');
         $t->string('section');

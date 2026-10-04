@@ -14,7 +14,10 @@ use App\Models\DealCondition;
 use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
+use App\Models\DealIsin;
 use App\Models\DocumentFile;
+use App\Models\IsinAllotment;
+use App\Models\IsinPayment;
 use App\Models\LegalDocumentType;
 use App\Models\SecurityRegistration;
 use App\Models\SecurityRegistrationEvent;
@@ -93,6 +96,8 @@ class DealDocumentController extends Controller
             DealCondition::class => DealCondition::query()->whereKey($file->attachable_id)->value('transaction_id'),
             DealExecution::class => DealExecution::query()->whereKey($file->attachable_id)->value('transaction_id'),
             DealDiligenceItem::class => DealDiligenceItem::query()->whereKey($file->attachable_id)->value('transaction_id'),
+            IsinAllotment::class => DealIsin::query()->whereKey(IsinAllotment::query()->whereKey($file->attachable_id)->value('deal_isin_id'))->value('transaction_id'),
+            IsinPayment::class => DealIsin::query()->whereKey(IsinPayment::query()->whereKey($file->attachable_id)->value('deal_isin_id'))->value('transaction_id'),
             SecurityRegistrationEvent::class => SecurityRegistration::query()
                 ->whereKey(SecurityRegistrationEvent::query()->whereKey($file->attachable_id)->value('security_registration_id'))
                 ->value('transaction_id'),

@@ -67,3 +67,21 @@ export function describeCin(cin) {
     if (!CIN_PATTERN.test(cin ?? '')) return null;
     return { listed: cin[0] === 'L', year: Number(cin.slice(8, 12)), ownership: cin.slice(12, 15) };
 }
+
+/** Mirrors IndianIdentifiers::isIsin: "IN" + 9 letters/digits + a Luhn check digit. */
+export function isinError(value) {
+    if (!value) return null;
+    if (!/^IN[A-Z0-9]{9}[0-9]$/.test(value))
+        return 'An ISIN is IN followed by 10 letters or digits.';
+    const digits = [...value.slice(0, 11)]
+        .map((c) => (/[0-9]/.test(c) ? c : String(c.charCodeAt(0) - 55)))
+        .join('');
+    let sum = 0;
+    [...digits].reverse().forEach((d, i) => {
+        const n = Number(d) * (i % 2 === 0 ? 2 : 1);
+        sum += Math.floor(n / 10) + (n % 10);
+    });
+    return (10 - (sum % 10)) % 10 === Number(value[11])
+        ? null
+        : "This ISIN's check digit is wrong.";
+}

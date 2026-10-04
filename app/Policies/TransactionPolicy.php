@@ -97,6 +97,11 @@ class TransactionPolicy
         return $actor->can('deals.security.verify') && $transaction->isOpenDeal();
     }
 
+    public function manageIsin(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.isin.manage') && $transaction->isOpenDeal();
+    }
+
     public function custody(User $actor, Transaction $transaction): bool
     {
         return $actor->can('deals.execution.custody') && $transaction->isDeal();

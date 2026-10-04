@@ -7,6 +7,8 @@ use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
 use App\Models\DocumentFile;
+use App\Models\IsinAllotment;
+use App\Models\IsinPayment;
 use App\Models\SecurityRegistrationEvent;
 use App\Models\Transaction;
 use App\Models\User;
@@ -58,7 +60,7 @@ trait StoresDocumentFiles
     /**
      * Stores the file under the deal's folder and records it against $owner.
      */
-    private function attach(DealDocument|DealCondition|DealExecution|DealDiligenceItem|SecurityRegistrationEvent $owner, Transaction $deal, string $folder, UploadedFile $file, User $actor): DocumentFile
+    private function attach(DealDocument|DealCondition|DealExecution|DealDiligenceItem|SecurityRegistrationEvent|IsinAllotment|IsinPayment $owner, Transaction $deal, string $folder, UploadedFile $file, User $actor): DocumentFile
     {
         $path = $file->store("deals/{$deal->ulid}/{$folder}", 'local');
         if ($path === false) {

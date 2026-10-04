@@ -57,7 +57,7 @@ class DealSecurity extends Model
     /** A one-line name for lists: what, whose. */
     public function summary(): string
     {
-        $types = $this->relationLoaded('securityTypes') ? $this->securityTypes->pluck('name')->implode(', ') : '';
+        $types = $this->securityTypes->pluck('name')->implode(', ');
 
         return trim(($types !== '' ? $types : $this->nature->label()).' · '.$this->asset_owner);
     }

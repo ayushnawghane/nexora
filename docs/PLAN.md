@@ -199,6 +199,17 @@ Plan: [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md).
 - Local import (2026-10-04): 150 empanelled agencies, 2,369 securities, 142 registrations, 509 due diligence items, 799 files
 - ⬜ Owner review; roles; Stack test entries in registrations (PHASE-2-PLAN §4 #3)
 
+### M10: ISIN and payment servicing 🟡 built, owner review pending
+- ✅ Schema: `deal_isins` (one ISIN once per deal, Luhn-checked), `isin_allotments` (initial + further tranches, amount = face value × quantity, depository credit proof), `isin_payments` (interest / principal schedule; a moved due date keeps the original and the reason), `isin_reminders` (one per payment per day)
+- ✅ Deal workspace **ISIN** tab: ISIN details, allotments, schedule **generated from a frequency** (`PaymentDates`: month ends kept, weekend rule, maturity always last), **uploaded in Stack's CSV format** (whole file checked first) or added one date at a time; move / remove a due date; record **paid / defaulted / redeemed earlier** with proof; **Send reminder**
+- ✅ **ISINs** list (Stack's ISIN MIS): search, *overdue* / *due in 30 days* filters, ISINs with something due first, Excel export
+- ✅ Daily `isin:send-reminders` (08:30, `ISIN_REMINDER_TIME`): one email per deal to the vertical team and RM, about payments due in the next 7 days or overdue up to 30 days (`ISIN_REMINDER_DAYS`, `ISIN_REMINDER_OVERDUE_DAYS`)
+- ✅ Dashboard: *Debenture payments overdue* number and overdue payments in *Waiting on you*; God Mode editors for ISINs and payments (settled ones included); permission *ISIN: maintain …*; Stack's `isin_*` mapped
+- ✅ `legacy:import isin` (part of `all`): Stack's current `_new` tables; test ISINs and removed rows skipped, repeated ISINs / due dates merged (the settled row wins), put / call dates read from Stack's serialised lists, **perpetual ISINs** (Stack maturity 9999-09-30) imported with a blank maturity and their placeholder dates after 2100 left out; re-running changes nothing
+- Local import (2026-10-04): 2,067 ISINs, 779 allotments, 27,055 interest and 4,525 principal payments, 8,722 files (211 test / removed ISINs and 1,541 empty Stack allotment rows skipped)
+- ⬜ Owner review; roles; decisions PHASE-2-PLAN §4 #4, #5 and #5a (**8,728 payments Stack never marked paid show as overdue**)
+- Not built from the plan: per-row hand edits beyond move / remove / record (God Mode covers corrections), a preview step for the CSV upload (the file is checked in full and rejected as a whole instead), call / put option history (Stack's `isin_call_details_new`, 58 rows)
+
 ### Out of scope for Phase 1
 Other products, billing and invoicing, ISIN, legal and security modules, outward and payouts, the AIF client portal, the approver mobile app, reports and payment links.
 
@@ -208,11 +219,11 @@ Other products, billing and invoicing, ISIN, legal and security modules, outward
 
 | Check | Result (last full run) |
 |---|---|
-| Tests | 259 passed (2,000+ assertions) |
+| Tests | 310 passed (2,908 assertions) |
 | Pint / PHPStan level 5 | Clean |
 | ESLint / Prettier / build | Clean |
 
-All gates were run on 2026-10-04 after M6 was completed. Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen.
+All gates were last run on 2026-10-04 after M10 (run the suite without `--parallel`: the legacy import tests share one legacy test database). Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen; the ISIN tab and ISINs list checked on real imported data.
 
 **Next step:** go-live preparation: owner sign-off on the import rules and the open items in §6, a copy of Stack's uploads folder for the letter PDFs, then a final dry run and the real import. Phase 2 is planned in [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md) (draft for owner review).
 

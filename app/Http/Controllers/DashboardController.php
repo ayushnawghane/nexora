@@ -6,6 +6,7 @@ use App\Enums\ApprovalStatus;
 use App\Enums\ConditionStatus;
 use App\Enums\DealStatus;
 use App\Enums\ExecutionStatus;
+use App\Enums\IsinPaymentStatus;
 use App\Enums\JobSheetStatus;
 use App\Enums\StatusApprovalTeam;
 use App\Enums\StatusRequestState;
@@ -16,6 +17,7 @@ use App\Models\DealDiligenceItem;
 use App\Models\DealExecution;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealStatusRequest;
+use App\Models\IsinPayment;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\FinancialYear;
@@ -62,6 +64,9 @@ class DashboardController extends Controller
             $kpis[] = ['key' => 'open', 'label' => 'Open deals', 'value' => (clone $open)->count(), 'href' => route('deals.index')];
             $kpis[] = ['key' => 'live', 'label' => 'Live deals', 'value' => Transaction::query()->where('deal_status', DealStatus::Live)->count(), 'href' => route('deals.index', ['filter' => ['status' => 'live']])];
             $kpis[] = ['key' => 'fy', 'label' => 'Deals opened this FY ('.FinancialYear::short(today()).')', 'value' => Transaction::query()->whereNotNull('deal_status')->where('el_date', '>=', $fyStart->toDateString())->count(), 'href' => route('deals.index')];
+            $overdue = IsinPayment::query()->where('status', IsinPaymentStatus::Due)->whereDate('due_on', '<', today())
+                ->whereHas('isin.transaction', fn (Builder $q) => $q->whereNotIn('deal_status', $this->finalStatuses()))->count();
+            $kpis[] = ['key' => 'overdue_payments', 'label' => 'Debenture payments overdue', 'value' => $overdue, 'href' => route('isins.index', ['filter' => ['due' => 'overdue']])];
             $kpis[] = ['key' => 'issue', 'label' => 'Issue size under trusteeship', 'value' => (string) $issueTotal->toScale(2), 'money' => true, 'href' => route('deals.index')];
         }
 
@@ -220,6 +225,23 @@ class DashboardController extends Controller
                     'detail' => $d->title.($d->checker_comment ? " · “{$d->checker_comment}”" : ''),
                     'href' => $securityLink($d),
                     'at' => $d->checked_at?->toIso8601String(),
+                ]));
+        }
+
+        if ($user->can('deals.isin.manage')) {
+            IsinPayment::query()
+                ->where('status', IsinPaymentStatus::Due)
+                ->whereDate('due_on', '<', today())
+                ->whereHas('isin.transaction', fn (Builder $q) => $q->whereNotIn('deal_status', $this->finalStatuses()))
+                ->with(['isin:id,transaction_id,isin', 'isin.transaction:id,ulid,company_id', 'isin.transaction.company:id,name'])
+                ->oldest('due_on')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (IsinPayment $p) => $items->push([
+                    'id' => "isin-payment-{$p->id}",
+                    'kind' => 'Payment overdue',
+                    'title' => $p->isin->transaction->company->name,
+                    'detail' => "{$p->isin->isin} · {$p->kind->label()} due {$p->due_on->format('d M Y')}",
+                    'href' => route('deals.show', ['transaction' => $p->isin->transaction->ulid, 'tab' => 'isin']),
+                    'at' => $p->due_on->toIso8601String(),
                 ]));
         }
 

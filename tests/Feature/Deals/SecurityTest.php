@@ -134,7 +134,8 @@ test('a pledge needs its depository details; a registration can be satisfied aft
     $pledge = SecurityRegistration::query()->sole();
 
     $this->deal->forceFill(['deal_status' => DealStatus::Redeemed, 'status' => 'closed', 'closed_at' => now()])->save();
-    $this->post("/deals/{$this->deal->ulid}/registrations/{$pledge->id}/events", ['action' => 'modify', 'happened_on' => '2025-09-30', 'reason' => 'Partial'])->assertForbidden();
+    $this->post("/deals/{$this->deal->ulid}/registrations/{$pledge->id}/events", ['action' => 'modify', 'happened_on' => '2025-09-30', 'reason' => 'Partial'])
+        ->assertSessionHasErrors(['action' => 'A registration of a closed deal can only be satisfied.']);
     $this->post("/deals/{$this->deal->ulid}/registrations/{$pledge->id}/events", ['action' => 'satisfy', 'happened_on' => '2025-09-30'])->assertSessionHasNoErrors();
     expect($pledge->fresh()->status)->toBe(RegistrationStatus::Satisfied);
 });

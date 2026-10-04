@@ -68,6 +68,13 @@ return [
         'cersai_verify' => ['deals.view', 'deals.security.verify'],
         'pledge_verify' => ['deals.view', 'deals.security.verify'],
 
+        // ISIN
+        'isin_view' => ['deals.view'],
+        'isin_add' => ['deals.view', 'deals.isin.manage'],
+        'isin_edit' => ['deals.view', 'deals.isin.manage'],
+        'isin_delete' => ['deals.view', 'deals.isin.manage'],
+        'isn_mis_view' => ['deals.view'],
+
         // Companies and masters
         'master' => ['masters.view', 'masters.manage', 'companies.view', 'companies.manage'],
     ],
