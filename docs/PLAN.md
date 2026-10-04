@@ -162,6 +162,22 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
 - ✅ Real import run into the **local** `nexora` database (2026-10-04), same counts as the dry run.
 - ⬜ The real import runs at go-live, into the production database, after a final dry run.
 
+---
+
+## Phase 2 progress
+
+Plan: [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md).
+
+### M7: Documentation 🟡 built, owner review pending
+- ✅ Schema: `issuing_authorities`, `legal_document_types` (+ products), `condition_documents` (CP/CS master with *suggested for* flags), `deal_documents` (standard / copy / supplement / amendment, numbered per kind, soft-deleted), `deal_conditions` (CP/CS items), `document_files` (private files on any document or item; removed files kept)
+- ✅ Masters: *Issuing authorities*, *Legal documents*, *CP / CS documents*. The masters engine gained a **yes/no** field type.
+- ✅ Deal workspace **Documentation** tab: legal documents with execution-version upload and history; CP and CS checklists with master or deal-only items, due dates and overdue flag, multi-file upload that sends the item for checking, **checker ≠ uploader**, send back with a reason (the item stays sent back while files are fixed), not applicable with a reason, remove only for untouched items. Uploads: PDF/Word/Excel/image, 20 MB each, 10 per upload, checked in the browser and on the server; files stored privately, downloaded through the deal (deal viewers only).
+- ✅ Permissions *Documents & CP/CS: maker / checker*; Stack's `draft_*`, `cp_*`, `cs_*` permissions mapped in `config/legacy.php`
+- ✅ Dashboard *Waiting on you*: CP/CS items to check, and items sent back to their maker
+- ✅ God Mode editors: legal document (name), CP/CS item (name, authority, due date, comments)
+- ✅ `legacy:import documents` (part of `all`): masters (repeated names merged), deal documents from Stack's per-deal document rows and upload mappings (newest live upload current, the rest history; one-off deal documents under *Other document*), CP/CS items from `pre_/post_documents_data` matched to the master by id or name (the ~22,000 older-ERP rows only have a name), repeated items on a deal merged with all their files, file records with copies from `LEGACY_UPLOADS_PATH` when set
+- ⬜ Owner review of the screens and the import; roles for maker / checker
+
 ### Out of scope for Phase 1
 Other products, billing and invoicing, ISIN, legal and security modules, outward and payouts, the AIF client portal, the approver mobile app, reports and payment links.
 

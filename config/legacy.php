@@ -34,6 +34,19 @@ return [
         'contact' => ['deals.view', 'deals.edit'],
         'closed' => ['deals.view'],
 
+        // Documentation and CP/CS
+        'draft_view' => ['deals.view'],
+        'draft_add' => ['deals.view', 'deals.documents.manage'],
+        'draft_delete' => ['deals.view', 'deals.documents.manage'],
+        'cp_view' => ['deals.view'],
+        'cs_view' => ['deals.view'],
+        'cp_add' => ['deals.view', 'deals.documents.manage'],
+        'cs_add' => ['deals.view', 'deals.documents.manage'],
+        'cp_delete' => ['deals.view', 'deals.documents.manage'],
+        'cs_delete' => ['deals.view', 'deals.documents.manage'],
+        'cp_verify' => ['deals.view', 'deals.documents.verify'],
+        'cs_verify' => ['deals.view', 'deals.documents.verify'],
+
         // Companies and masters
         'master' => ['masters.view', 'masters.manage', 'companies.view', 'companies.manage'],
     ],

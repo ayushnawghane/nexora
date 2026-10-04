@@ -111,6 +111,11 @@ class MasterDefinition
                 continue;
             }
             $value = $input[$attribute];
+            if (($field['type'] ?? null) === 'boolean') {
+                $input[$attribute] = filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? $value;
+
+                continue;
+            }
             if (is_string($value)) {
                 $value = trim($value);
                 $value = match ($field['transform'] ?? null) {
@@ -154,6 +159,10 @@ class MasterDefinition
 
             if (($field['type'] ?? null) === 'enum') {
                 $fieldRules[] = Rule::enum($field['enum']);
+            }
+
+            if (($field['type'] ?? null) === 'boolean') {
+                $fieldRules = ['required', 'boolean'];
             }
 
             if (($field['type'] ?? null) === 'multiselect') {
@@ -228,6 +237,7 @@ class MasterDefinition
                 'select' => $record->getAttribute($attribute),
                 'multiselect' => $record->{$field['relation']}->modelKeys(),
                 'enum' => $record->getAttribute($attribute)?->value,
+                'boolean' => (bool) $record->getAttribute($attribute),
                 default => $record->getAttribute($attribute),
             };
 
@@ -262,7 +272,7 @@ class MasterDefinition
                 'label' => $field['label'],
                 // Enum fields are plain selects on the page.
                 'type' => ($field['type'] ?? 'text') === 'enum' ? 'select' : ($field['type'] ?? 'text'),
-                'required' => in_array('required', $field['rules'] ?? [], true),
+                'required' => ($field['type'] ?? null) !== 'boolean' && in_array('required', $field['rules'] ?? [], true),
                 'list' => (bool) ($field['list'] ?? false),
                 'sortable' => (bool) ($field['sortable'] ?? false),
                 'hint' => $field['hint'] ?? null,

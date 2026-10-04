@@ -71,8 +71,8 @@ export default function Dashboard({ kpis, queue }) {
                 <CardHeader className="pb-4">
                     <CardTitle>Waiting on you</CardTitle>
                     <CardDescription>
-                        Approvals to vote on, status changes for your team, and job sheet entries to
-                        check or fix. Oldest first.
+                        Approvals to vote on, status changes for your team, and job sheet entries
+                        and CP/CS items to check or fix. Oldest first.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="px-0">

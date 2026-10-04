@@ -35,7 +35,13 @@ Order follows the deal lifecycle. Each milestone stands on its own: schema → a
 
 Size: **S** about a week · **M** 2–3 weeks · **L** 4+ weeks (one developer + Claude, rough).
 
-### M7: Documentation and due diligence (M)
+### M7: Documentation (M) 🟡 built, owner review pending (2026-10-04)
+
+**Built:** masters for issuing authorities, legal documents (category + products) and CP/CS documents (with *suggested for* flags; the masters engine gained a yes/no field); the deal's **Documentation** tab with legal documents (standard / copy / supplement / amendment, numbered; execution-version upload with history) and CP / CS checklists (from the master or written for the deal, due dates and overdue flag, multi-file upload that sends the item for checking, checker ≠ uploader, send back with a reason, not applicable with a reason); private file storage with download through the deal; dashboard queue items; God Mode editors; `legacy:import documents`. Moved out: Stack's per-document **security fields** (`legal_compliance_documents_data`: asset owner, charge type, asset address …) describe securities, so they go to **M9**; **due diligence** annexures, ROC search, security cover and NOC (≈500 Stack rows) go with **M8 Execution**, which already handles those documents.
+
+Local import (2026-10-04): see PLAN.md §4 M7 for the counts.
+
+The original scope, for reference:
 - **Document master:** legal documents with category, product and listed/unlisted applicability, and stage (pre / post / CP / CS / legal compliance). Stack spreads these across several masters and mapping tables; Nexora uses **one `document_types` table + a pivot to products**.
 - **Deal checklist:** when a deal becomes Active, its checklist is generated from the master (by product, listed/unlisted, stage). Items can be added per deal, or marked N/A with a reason.
 - **Upload and verify:** maker uploads (PDF/DOCX/image, private storage, size limit, virus-safe MIME check), checker verifies or returns with a reason, **checker ≠ maker** (same rule as the job sheet). Several versions per item, the latest one is current, and the history is kept.
@@ -104,7 +110,7 @@ Compliance and monitoring (QCR, monthly/CTR, CDD/KYC, covenants, credit ratings)
 
 | # | Question | Needed for |
 |---|---|---|
-| 1 | Is Stack's document master (`master_legal_documents`, 3,024 rows) the list to keep, or should it be cleaned up first? Who verifies documents (role)? | M7 |
+| 1 | Stack's document masters were imported as they are (143 legal documents, 49 CP + 19 CS documents after merging repeated names). Clean-up can happen in *Masters*. Who makes and who checks documents (roles for *Documents & CP/CS: maker / checker*)? | M7 |
 | 2 | Must execution be complete before a deal can move Documentation → Live? | M8 |
 | 3 | Must all securities be satisfied before a deal can be Redeemed / Closed, or is that only a warning? | M9 |
 | 4 | Which Stack schedule tables are current: `mon_paymt_*_sch` or `…_new`? Which day-count conventions are used in practice? | M10 |

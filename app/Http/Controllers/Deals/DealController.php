@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Deals;
 
+use App\Enums\ConditionStatus;
+use App\Enums\DealDocumentKind;
 use App\Enums\DealStatus;
 use App\Enums\JobSheetStatus;
 use App\Enums\StatusApprovalTeam;
@@ -9,13 +11,19 @@ use App\Http\Controllers\Controller;
 use App\Models\CompanyAddress;
 use App\Models\CompanyContact;
 use App\Models\CompanyGstin;
+use App\Models\ConditionDocument;
 use App\Models\DealBilling;
+use App\Models\DealCondition;
+use App\Models\DealDocument;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealStatusChange;
 use App\Models\DealStatusRequest;
 use App\Models\DealStatusVote;
+use App\Models\DocumentFile;
 use App\Models\EngagementLetter;
+use App\Models\IssuingAuthority;
 use App\Models\JobSheetActivity;
+use App\Models\LegalDocumentType;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Tax\GstCalculator;
@@ -121,12 +129,15 @@ class DealController extends Controller
             'billing' => $this->billing($transaction, $gst),
             'status' => $this->status($transaction, $user),
             'jobSheet' => $this->jobSheet($transaction, $user),
+            'documentation' => $this->documentation($transaction, $user),
             'activity' => $this->activity($transaction),
             'can' => [
                 'editBilling' => $user->can('editDeal', $transaction),
                 'requestStatus' => $user->can('requestStatus', $transaction),
                 'makeJobSheet' => $user->can('makeJobSheet', $transaction),
                 'checkJobSheet' => $user->can('checkJobSheet', $transaction),
+                'manageDocuments' => $user->can('manageDocuments', $transaction),
+                'verifyDocuments' => $user->can('verifyDocuments', $transaction),
             ],
         ]);
     }
@@ -335,6 +346,103 @@ class DealController extends Controller
     }
 
     /**
+     * The deal's legal documents and CP/CS items, with what the add forms can offer.
+     *
+     * @return array<string, mixed>
+     */
+    private function documentation(Transaction $deal, User $user): array
+    {
+        $fileWith = ['uploader:id,name', 'remover:id,name'];
+        $listing = $deal->issueDetail?->listing;
+        $secured = $deal->issueDetail?->is_secured;
+
+        $kindOrder = array_flip(array_map(fn (DealDocumentKind $k) => $k->value, DealDocumentKind::cases()));
+        $documents = $deal->dealDocuments()
+            ->with(['type:id,name,category', 'creator:id,name', 'files' => fn ($q) => $q->with($fileWith)])
+            ->get()
+            ->sortBy([
+                fn (DealDocument $a, DealDocument $b) => strcasecmp($a->type->name, $b->type->name),
+                fn (DealDocument $a, DealDocument $b) => $kindOrder[$a->kind->value] <=> $kindOrder[$b->kind->value],
+                fn (DealDocument $a, DealDocument $b) => $a->sequence <=> $b->sequence,
+            ])
+            ->values()
+            ->map(function (DealDocument $d) {
+                $current = $d->files->first(fn (DocumentFile $f) => $f->removed_at === null);
+
+                return [
+                    'id' => $d->id,
+                    'name' => $d->name,
+                    'kind' => $d->kind->value,
+                    'kind_label' => $d->kind->label(),
+                    'category' => $d->type->category->value,
+                    'category_label' => $d->type->category->label(),
+                    'type_id' => $d->legal_document_type_id,
+                    'added_by' => $d->creator->name,
+                    'added_at' => $d->created_at?->toIso8601String(),
+                    'current' => $current?->present(),
+                    'history' => $d->files->reject(fn (DocumentFile $f) => $current !== null && $f->is($current))
+                        ->map(fn (DocumentFile $f) => $f->present())->values(),
+                ];
+            });
+
+        $conditions = $deal->conditions()
+            ->with(['issuingAuthority:id,name', 'submitter:id,name', 'checker:id,name', 'files' => fn ($q) => $q->with($fileWith)])
+            ->orderBy('id')->get()
+            ->map(fn (DealCondition $c) => [
+                'id' => $c->id,
+                'stage' => $c->stage->value,
+                'name' => $c->name,
+                'from_master' => $c->condition_document_id !== null,
+                'issuing_authority' => $c->issuingAuthority?->name,
+                'due_on' => $c->due_on?->toDateString(),
+                'overdue' => $c->isOverdue(),
+                'status' => $c->status->value,
+                'status_label' => $c->status->label(),
+                'status_tone' => $c->status->tone(),
+                'is_open' => $c->status->isOpen(),
+                'submitted_by' => $c->submitter?->name,
+                'submitted_at' => $c->submitted_at?->toIso8601String(),
+                'checker' => $c->checker?->name,
+                'checker_comment' => $c->checker_comment,
+                'checked_at' => $c->checked_at?->toIso8601String(),
+                'waived_reason' => $c->waived_reason,
+                'files' => $c->files->whereNull('removed_at')->sortBy('id')->map(fn (DocumentFile $f) => $f->present())->values(),
+                'removed_files' => $c->files->whereNotNull('removed_at')->map(fn (DocumentFile $f) => $f->present())->values(),
+                'can_check' => $c->status === ConditionStatus::Submitted && $c->submitted_by !== $user->id,
+                'is_mine' => $c->submitted_by === $user->id,
+                'can_remove' => $c->status === ConditionStatus::Pending && $c->files->isEmpty(),
+            ]);
+
+        $taken = $deal->conditions()->whereNotNull('condition_document_id')->pluck('condition_document_id')->all();
+
+        return [
+            'documents' => $documents,
+            'conditions' => $conditions,
+            'issue' => $listing && $secured !== null ? $listing->label().', '.($secured ? 'secured' : 'unsecured') : null,
+            'options' => [
+                'types' => LegalDocumentType::query()->forProduct($deal->product_id)->orderBy('name')->get(['id', 'name', 'category'])
+                    ->map(fn (LegalDocumentType $t) => [
+                        'value' => $t->id,
+                        'label' => $t->name,
+                        'description' => $t->category->label(),
+                        'on_deal' => $documents->contains(fn (array $d) => $d['type_id'] === $t->id && $d['kind'] === DealDocumentKind::Standard->value),
+                    ]),
+                'kinds' => DealDocumentKind::options(),
+                'conditions' => ConditionDocument::query()->active()->whereNotIn('id', $taken)->with('issuingAuthority:id,name')->orderBy('name')->get()
+                    ->map(fn (ConditionDocument $d) => [
+                        'value' => $d->id,
+                        'stage' => $d->stage->value,
+                        'label' => $d->name,
+                        'authority' => $d->issuingAuthority?->name,
+                        'suggested' => $d->isSuggestedFor($listing, $secured),
+                    ]),
+                'authorities' => IssuingAuthority::query()->active()->orderBy('name')->get(['id', 'name'])
+                    ->map(fn (IssuingAuthority $a) => ['value' => $a->id, 'label' => $a->name]),
+            ],
+        ];
+    }
+
+    /**
      * Activity log entries for the deal, its billing and its job sheet, plus status changes, newest first.
      *
      * @return list<array<string, mixed>>
@@ -345,6 +453,8 @@ class DealController extends Controller
             Transaction::class => [$deal->id],
             DealBilling::class => array_filter([$deal->billing?->id]),
             DealJobSheetEntry::class => $deal->jobSheetEntries()->pluck('id')->all(),
+            DealDocument::class => $deal->dealDocuments()->withTrashed()->pluck('id')->all(),
+            DealCondition::class => $deal->conditions()->pluck('id')->all(),
         ];
 
         $logs = Activity::query()
@@ -364,6 +474,8 @@ class DealController extends Controller
                 'area' => match ($a->subject_type) {
                     DealBilling::class => 'Billing',
                     DealJobSheetEntry::class => 'Job sheet',
+                    DealDocument::class => 'Documents',
+                    DealCondition::class => 'CP/CS',
                     default => 'Transaction',
                 },
                 'event' => $a->event ?? $a->description,

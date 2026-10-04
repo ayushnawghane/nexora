@@ -7,6 +7,8 @@ use App\GodMode\Editors\CompanyContactEditor;
 use App\GodMode\Editors\CompanyEditor;
 use App\GodMode\Editors\CompanyGstinEditor;
 use App\GodMode\Editors\DealBillingEditor;
+use App\GodMode\Editors\DealConditionEditor;
+use App\GodMode\Editors\DealDocumentEditor;
 use App\GodMode\Editors\DealStatusEditor;
 use App\GodMode\Editors\FeesEditor;
 use App\GodMode\Editors\IssueDetailsEditor;
@@ -31,6 +33,8 @@ class Editors
         DealBillingEditor::class,
         DealStatusEditor::class,
         JobSheetEntryEditor::class,
+        DealDocumentEditor::class,
+        DealConditionEditor::class,
     ];
 
     /** Corrections after which the engagement letter may no longer match the data. */

@@ -320,6 +320,22 @@ class Transaction extends Model
         return $this->hasMany(DealJobSheetEntry::class);
     }
 
+    /**
+     * @return HasMany<DealDocument, $this>
+     */
+    public function dealDocuments(): HasMany
+    {
+        return $this->hasMany(DealDocument::class);
+    }
+
+    /**
+     * @return HasMany<DealCondition, $this>
+     */
+    public function conditions(): HasMany
+    {
+        return $this->hasMany(DealCondition::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

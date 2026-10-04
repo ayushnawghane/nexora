@@ -11,7 +11,9 @@ use App\Http\Controllers\Companies\CompanyGstinController;
 use App\Http\Controllers\Companies\CompanyLookupController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Deals\DealBillingController;
+use App\Http\Controllers\Deals\DealConditionController;
 use App\Http\Controllers\Deals\DealController;
+use App\Http\Controllers\Deals\DealDocumentController;
 use App\Http\Controllers\Deals\DealStatusController;
 use App\Http\Controllers\Deals\JobSheetController;
 use App\Http\Controllers\GodMode\GodModeController;
@@ -86,6 +88,22 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
         Route::post('{transaction}/status', [DealStatusController::class, 'store'])->name('status.store');
         Route::post('{transaction}/job-sheet/{activity}', [JobSheetController::class, 'submit'])->name('job-sheet.submit');
         Route::post('{transaction}/job-sheet/entries/{entry}/check', [JobSheetController::class, 'check'])->name('job-sheet.check');
+
+        Route::controller(DealDocumentController::class)->group(function () {
+            Route::post('{transaction}/documents', 'store')->name('documents.store');
+            Route::delete('{transaction}/documents/{document}', 'destroy')->name('documents.destroy');
+            Route::post('{transaction}/documents/{document}/file', 'upload')->name('documents.upload');
+            Route::get('{transaction}/files/{file}', 'download')->name('files.download');
+            Route::delete('{transaction}/files/{file}', 'removeFile')->name('files.destroy');
+        });
+        Route::controller(DealConditionController::class)->prefix('{transaction}/conditions')->name('conditions.')->group(function () {
+            Route::post('/', 'store')->name('store');
+            Route::post('{condition}/files', 'upload')->name('upload');
+            Route::post('{condition}/check', 'check')->name('check');
+            Route::put('{condition}/due-date', 'dueDate')->name('due-date');
+            Route::post('{condition}/waive', 'waive')->name('waive');
+            Route::delete('{condition}', 'destroy')->name('destroy');
+        });
     });
     Route::prefix('deal-status-requests/{statusRequest}')->name('deals.status.')->controller(DealStatusController::class)->group(function () {
         Route::post('vote', 'vote')->name('vote');

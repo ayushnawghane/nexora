@@ -58,4 +58,14 @@ class TransactionPolicy
     {
         return $actor->can('deals.jobsheet.check') && $transaction->isOpenDeal();
     }
+
+    public function manageDocuments(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.documents.manage') && $transaction->isOpenDeal();
+    }
+
+    public function verifyDocuments(User $actor, Transaction $transaction): bool
+    {
+        return $actor->can('deals.documents.verify') && $transaction->isOpenDeal();
+    }
 }

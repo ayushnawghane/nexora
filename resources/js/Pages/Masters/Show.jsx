@@ -37,20 +37,25 @@ import { useMemo, useState } from 'react';
 
 const ALL = '__all__';
 
+function emptyValue(field) {
+    if (field.type === 'multiselect') return [];
+    if (field.type === 'select') return null;
+    if (field.type === 'boolean') return false;
+    return '';
+}
+
 function emptyValues(schema) {
-    return Object.fromEntries(
-        schema.map((f) => [
-            f.name,
-            f.type === 'multiselect' ? [] : f.type === 'select' ? null : '',
-        ]),
-    );
+    return Object.fromEntries(schema.map((f) => [f.name, emptyValue(f)]));
 }
 
 function MasterForm({ master, schema, record, onDone }) {
     const editing = Boolean(record);
     const initial = editing
         ? Object.fromEntries(
-              schema.map((f) => [f.name, record[f.name] ?? (f.type === 'multiselect' ? [] : '')]),
+              schema.map((f) => [
+                  f.name,
+                  record[f.name] ?? (f.type === 'select' ? null : emptyValue(f)),
+              ]),
           )
         : emptyValues(schema);
     const { data, setData, post, put, processing, errors } = useForm(initial);
@@ -75,6 +80,25 @@ function MasterForm({ master, schema, record, onDone }) {
                     {schema.map((field) => {
                         const id = `field-${field.name}`;
                         const error = errors[field.name] || errors[`${field.name}.0`];
+                        if (field.type === 'boolean') {
+                            return (
+                                <Field
+                                    key={field.name}
+                                    orientation="horizontal"
+                                    data-invalid={!!error || undefined}
+                                >
+                                    <Checkbox
+                                        id={id}
+                                        checked={data[field.name] === true}
+                                        onCheckedChange={(on) => setData(field.name, on === true)}
+                                    />
+                                    <FieldLabel htmlFor={id} className="font-normal">
+                                        {field.label}
+                                    </FieldLabel>
+                                    <FieldError>{error}</FieldError>
+                                </Field>
+                            );
+                        }
                         return (
                             <Field key={field.name} data-invalid={!!error || undefined}>
                                 <FieldLabel htmlFor={id}>
@@ -176,6 +200,13 @@ export default function MasterShow({
                 header: f.label,
                 meta: f.sortable ? { sortKey: f.name } : {},
                 cell: ({ row }) => {
+                    if (f.type === 'boolean') {
+                        return row.original[f.name] ? (
+                            <span className="text-foreground">Yes</span>
+                        ) : (
+                            <span className="text-subtle-foreground">—</span>
+                        );
+                    }
                     const value =
                         f.type === 'select' || f.type === 'multiselect'
                             ? row.original[`${f.name}__label`]

@@ -279,6 +279,7 @@ function legacySchema(): void
         $t->id();
         $t->string('name')->nullable();
         $t->string('path')->nullable();
+        $t->bigInteger('created_by')->nullable();
         $flags($t);
     });
     $schema->create('transaction_billing_address', function (Blueprint $t) use ($flags) {
@@ -332,6 +333,78 @@ function legacySchema(): void
     $schema->create('users_permissions', function (Blueprint $t) {
         $t->bigInteger('user_id');
         $t->bigInteger('permission_id');
+    });
+
+    // Documentation
+    $schema->create('issuing_authority', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->string('Issuer_name');
+        $flags($t);
+    });
+    $schema->create('master_legal_documents', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id')->default(0);
+        $t->bigInteger('doc_category')->default(0);
+        $t->string('legal_document_name');
+        $t->string('product_id')->default('');
+        $t->bigInteger('supplementary_to')->default(0);
+        $t->bigInteger('parent_id')->default(0);
+        $t->bigInteger('created_by')->nullable();
+        $flags($t);
+    });
+    $schema->create('upload_document_mapping', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        $t->bigInteger('legal_id')->nullable();
+        $t->bigInteger('upload_id');
+        $t->bigInteger('created_by')->nullable();
+        $t->bigInteger('updated_by')->nullable();
+        $flags($t);
+    });
+    foreach (['cp_documents' => 'cp_doc_name', 'cs_document' => 'cs_doc_name'] as $table => $name) {
+        $schema->create($table, function (Blueprint $t) use ($flags, $name) {
+            $t->id();
+            $t->integer('issuing_authority_id')->default(0);
+            $t->string($name);
+            $t->integer('con_id')->nullable();
+            $flags($t);
+        });
+    }
+    foreach (['cp_mapping' => 'cp_doc_id', 'cs_mapping' => 'cs_doc_id'] as $table => $key) {
+        $schema->create($table, function (Blueprint $t) use ($flags, $key) {
+            $t->id();
+            $t->integer($key);
+            $t->integer('listed_secured')->nullable();
+            $t->integer('listed_unsecured')->nullable();
+            $t->integer('unlisted_secured')->nullable();
+            $t->integer('unlisted_unsecured')->nullable();
+            $flags($t);
+        });
+    }
+    foreach (['pre_documents_data' => 'cp_document_id', 'post_documents_data' => 'cs_document_id'] as $table => $key) {
+        $schema->create($table, function (Blueprint $t) use ($key) {
+            $t->id();
+            $t->integer('con_id');
+            $t->integer($key)->nullable();
+            $t->integer('issuing_authority_id')->nullable();
+            $t->string('issuer_name')->nullable();
+            $t->text('document_name')->nullable();
+            $t->string('upload_id')->nullable();
+            $t->string('status')->default('pending');
+            $t->tinyInteger('is_active')->default(1);
+            $t->integer('created_by')->nullable();
+            $t->dateTime('created_date')->nullable();
+            $t->dateTime('updated_at')->nullable();
+            $t->integer('updated_by')->nullable();
+            $t->integer('verified_by')->nullable();
+            $t->dateTime('verified_date')->nullable();
+        });
+    }
+    $schema->create('pre_post_upload_map', function (Blueprint $t) {
+        $t->integer('id');
+        $t->string('section');
+        $t->integer('upload_id');
+        $t->tinyInteger('is_active')->default(1);
     });
 }
 

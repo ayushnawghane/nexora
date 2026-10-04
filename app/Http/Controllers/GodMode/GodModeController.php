@@ -16,6 +16,8 @@ use App\Models\Company;
 use App\Models\CompanyAddress;
 use App\Models\CompanyContact;
 use App\Models\CompanyGstin;
+use App\Models\DealCondition;
+use App\Models\DealDocument;
 use App\Models\DealJobSheetEntry;
 use App\Models\EngagementLetter;
 use App\Models\FeeLine;
@@ -77,7 +79,7 @@ class GodModeController extends Controller
 
     public function transaction(Transaction $transaction): Response
     {
-        $transaction->load(['company:id,ulid,name', 'jobSheetEntries.activity:id,name']);
+        $transaction->load(['company:id,ulid,name', 'jobSheetEntries.activity:id,name', 'dealDocuments', 'conditions']);
         $item = fn (string $editor, $record, string $title, ?string $subtitle = null, ?string $id = null) => [
             ...Editors::present(Editors::get($editor), $record, $id ?? (string) $record->getKey()),
             'title' => $title,
@@ -101,6 +103,10 @@ class GodModeController extends Controller
             $sections[] = ['title' => 'Deal', 'items' => $deal];
             $sections[] = ['title' => 'Job sheet', 'items' => $transaction->jobSheetEntries
                 ->map(fn (DealJobSheetEntry $e) => $item('job-sheet-entry', $e, $e->activity->name, $e->status->label()))->values()];
+            $sections[] = ['title' => 'Legal documents', 'items' => $transaction->dealDocuments
+                ->map(fn (DealDocument $d) => $item('deal-document', $d, $d->name, $d->kind->label()))->values()];
+            $sections[] = ['title' => 'CP / CS', 'items' => $transaction->conditions
+                ->map(fn (DealCondition $c) => $item('deal-condition', $c, $c->name, "{$c->stage->short()} · {$c->status->label()}"))->values()];
         }
 
         $latest = $transaction->engagementLetters()->with('generator:id,name')->get();

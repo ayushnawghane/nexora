@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ConditionStage;
+use App\Models\ConditionDocument;
 use App\Models\Department;
 use App\Models\Pincode;
 use App\Models\Product;
@@ -124,4 +126,29 @@ test('master changes are recorded in the activity log', function () {
     $activity = Activity::query()->latest('id')->firstOrFail();
     expect($activity->subject_type)->toBe(Department::class)
         ->and($activity->causer_id)->toBe($actor->id);
+});
+
+test('boolean fields are checkboxes saved as true or false; CP/CS names are unique per stage', function () {
+    signIn(permissions: ['masters.view', 'masters.manage']);
+
+    $this->post('/masters/condition-documents', [
+        'stage' => 'precedent', 'name' => 'Rating letter', 'listed_secured' => true, 'listed_unsecured' => '0',
+        'unlisted_secured' => 'true', 'unlisted_unsecured' => false,
+    ])->assertSessionHasNoErrors();
+    $this->post('/masters/condition-documents', ['stage' => 'precedent', 'name' => 'Rating letter', 'listed_secured' => 'maybe'])
+        ->assertSessionHasErrors(['name', 'listed_secured']);
+    $this->post('/masters/condition-documents', [
+        'stage' => 'subsequent', 'name' => 'Rating letter', 'listed_secured' => false, 'listed_unsecured' => false,
+        'unlisted_secured' => false, 'unlisted_unsecured' => false,
+    ])->assertSessionHasNoErrors();
+
+    $cp = ConditionDocument::query()->where('stage', ConditionStage::Precedent)->sole();
+    expect($cp->listed_secured)->toBeTrue()
+        ->and($cp->listed_unsecured)->toBeFalse()
+        ->and($cp->unlisted_secured)->toBeTrue()
+        ->and($cp->unlisted_unsecured)->toBeFalse();
+
+    $this->get('/masters/condition-documents')->assertInertia(fn ($page) => $page
+        ->where('schema.3.type', 'boolean')
+        ->where('schema.3.required', false));
 });

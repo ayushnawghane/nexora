@@ -1,11 +1,14 @@
 <?php
 
+use App\Enums\ConditionStage;
+use App\Enums\ConditionStatus;
 use App\Enums\DealStatus;
 use App\Enums\StatusRequestState;
 use App\Enums\TransactionStatus;
 use App\Models\Company;
 use App\Models\CompanyAddress;
 use App\Models\CompanyContact;
+use App\Models\DealCondition;
 use App\Models\GodModeChange;
 use App\Models\Transaction;
 use App\Services\Auth\TwoFactor;
@@ -195,4 +198,24 @@ test('search finds companies and deals; record pages show every editable part', 
     $this->get("/god-mode/companies/{$deal->company->ulid}")->assertInertia(fn (AssertableInertia $page) => $page
         ->where('sections.0.items.0.editor', 'company')
         ->has('links', 1));
+});
+
+test('a CP/CS item can be corrected, keeping the deal-wide name rule; its status stays as it happened', function () {
+    godUser();
+    $deal = Transaction::factory()->deal()->create();
+    $make = fn (string $name) => DealCondition::query()->forceCreate([
+        'transaction_id' => $deal->id, 'stage' => ConditionStage::Precedent, 'name' => $name,
+        'status' => ConditionStatus::Verified, 'created_by' => $deal->created_by,
+    ]);
+    $item = $make('Board resolutoin');
+    $make('Rating letter');
+
+    correct('deal-condition', (string) $item->id, ['name' => 'Rating letter'])->assertSessionHasErrors('name');
+    correct('deal-condition', (string) $item->id, ['name' => 'Board resolution', 'due_on' => '2025-10-31'])->assertSessionHasNoErrors();
+
+    $item->refresh();
+    expect($item->name)->toBe('Board resolution')
+        ->and($item->due_on->toDateString())->toBe('2025-10-31')
+        ->and($item->status)->toBe(ConditionStatus::Verified)
+        ->and(GodModeChange::query()->latest('id')->value('editor'))->toBe('deal-condition');
 });

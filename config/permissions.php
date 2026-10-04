@@ -42,6 +42,8 @@ return [
                 'deals.status.approve_accounts' => 'Approve status changes (Accounts)',
                 'deals.jobsheet.make' => 'Job sheet: maker',
                 'deals.jobsheet.check' => 'Job sheet: checker',
+                'deals.documents.manage' => 'Documents & CP/CS: maker (add, upload, remove)',
+                'deals.documents.verify' => 'Documents & CP/CS: checker (verify, send back)',
             ],
         ],
         'companies' => [

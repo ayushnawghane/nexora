@@ -1,13 +1,18 @@
 <?php
 
+use App\Enums\ConditionStage;
+use App\Enums\LegalDocumentCategory;
 use App\Enums\Listing;
 use App\Models\Arranger;
 use App\Models\Bank;
+use App\Models\ConditionDocument;
 use App\Models\ContactType;
 use App\Models\Department;
 use App\Models\Designation;
+use App\Models\IssuingAuthority;
 use App\Models\JobSheetActivity;
 use App\Models\LeadSource;
+use App\Models\LegalDocumentType;
 use App\Models\Pincode;
 use App\Models\Product;
 use App\Models\State;
@@ -20,7 +25,7 @@ use App\Models\VerticalTeam;
 | Config-driven masters. Each entry is served by the generic MasterController and Masters/Show page.
 |
 | fields.<attribute>:
-|   type        text | email | select (belongsTo) | multiselect (belongsToMany) | enum
+|   type        text | email | select (belongsTo) | multiselect (belongsToMany) | enum | boolean (a checkbox)
 |   rules       validation rules (uniqueness is added automatically when unique = true)
 |   unique      enforce uniqueness (ignoring soft-deleted rows is NOT done: the DB index is the authority)
 |   transform   upper | lower — applied before validation
@@ -153,6 +158,42 @@ return [
                 ],
             ],
             'dependents' => ['entries'],
+        ],
+        'issuing-authorities' => [
+            'group' => 'deals', 'label' => 'Issuing authorities', 'singular' => 'issuing authority',
+            'model' => IssuingAuthority::class,
+            'fields' => ['name' => $name()],
+            'dependents' => ['conditionDocuments', 'dealConditions'],
+        ],
+        'legal-document-types' => [
+            'group' => 'deals', 'label' => 'Legal documents', 'singular' => 'legal document',
+            'model' => LegalDocumentType::class,
+            'fields' => [
+                'name' => $name(200),
+                'category' => ['label' => 'Category', 'type' => 'enum', 'enum' => LegalDocumentCategory::class, 'rules' => ['required'], 'list' => true],
+                'product_ids' => [
+                    'label' => 'Products', 'type' => 'multiselect', 'rules' => ['array', 'min:1'], 'relation' => 'products', 'options' => [Product::class, 'name'], 'list' => true,
+                    'hint' => 'Deals of these products can add the document.',
+                ],
+            ],
+            'dependents' => ['dealDocuments'],
+        ],
+        'condition-documents' => [
+            'group' => 'deals', 'label' => 'CP / CS documents', 'singular' => 'CP / CS document',
+            'model' => ConditionDocument::class,
+            'fields' => [
+                'stage' => ['label' => 'Stage', 'type' => 'enum', 'enum' => ConditionStage::class, 'rules' => ['required'], 'list' => true],
+                'name' => ['label' => 'Document', 'type' => 'text', 'rules' => ['required', 'string', 'max:500'], 'list' => true, 'search' => true, 'sortable' => true],
+                'issuing_authority_id' => ['label' => 'Issuing authority', 'type' => 'select', 'rules' => ['nullable', 'integer'], 'relation' => 'issuingAuthority', 'options' => [IssuingAuthority::class, 'name'], 'list' => true],
+                'listed_secured' => ['label' => 'Suggested for listed, secured issues', 'type' => 'boolean'],
+                'listed_unsecured' => ['label' => 'Suggested for listed, unsecured issues', 'type' => 'boolean'],
+                'unlisted_secured' => ['label' => 'Suggested for unlisted, secured issues', 'type' => 'boolean'],
+                'unlisted_unsecured' => ['label' => 'Suggested for unlisted, unsecured issues', 'type' => 'boolean'],
+            ],
+            // the same document name can be both a CP and a CS
+            'unique_together' => [['name', 'stage']],
+            'dependents' => ['dealConditions'],
+            'default_sort' => 'name',
         ],
     ],
 ];

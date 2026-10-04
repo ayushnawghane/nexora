@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ApprovalStatus;
+use App\Enums\ConditionStatus;
 use App\Enums\DealStatus;
 use App\Enums\JobSheetStatus;
 use App\Enums\StatusApprovalTeam;
 use App\Enums\StatusRequestState;
 use App\Enums\TransactionStatus;
 use App\Models\ApprovalRequest;
+use App\Models\DealCondition;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealStatusRequest;
 use App\Models\Transaction;
@@ -22,7 +24,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Headline numbers and the signed-in user's work queue. Each section only appears for people with
+ * Headline numbers and the signed-in user's work queue (votes, status changes, job sheet and CP/CS checks). Each section only appears for people with
  * the permission it needs.
  */
 class DashboardController extends Controller
@@ -145,6 +147,39 @@ class DashboardController extends Controller
                     'detail' => $e->activity->name.($e->checker_comment ? " · “{$e->checker_comment}”" : ''),
                     'href' => route('deals.show', ['transaction' => $e->transaction->ulid, 'tab' => 'job-sheet']),
                     'at' => $e->checked_at?->toIso8601String(),
+                ]));
+        }
+
+        if ($user->can('deals.documents.verify')) {
+            DealCondition::query()
+                ->where('status', ConditionStatus::Submitted)
+                ->where('submitted_by', '!=', $user->id)
+                ->whereHas('transaction', fn (Builder $q) => $q->whereNotIn('deal_status', $this->finalStatuses()))
+                ->with('transaction.company:id,name')
+                ->oldest('submitted_at')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (DealCondition $c) => $items->push([
+                    'id' => "condition-{$c->id}",
+                    'kind' => "{$c->stage->short()} check",
+                    'title' => $c->transaction->company->name,
+                    'detail' => $c->name,
+                    'href' => route('deals.show', ['transaction' => $c->transaction->ulid, 'tab' => 'documentation']),
+                    'at' => $c->submitted_at?->toIso8601String(),
+                ]));
+        }
+
+        if ($user->can('deals.documents.manage')) {
+            DealCondition::query()
+                ->where('status', ConditionStatus::Returned)
+                ->where('submitted_by', $user->id)
+                ->with('transaction.company:id,name')
+                ->oldest('checked_at')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (DealCondition $c) => $items->push([
+                    'id' => "condition-returned-{$c->id}",
+                    'kind' => 'Sent back to you',
+                    'title' => $c->transaction->company->name,
+                    'detail' => $c->name.($c->checker_comment ? " · “{$c->checker_comment}”" : ''),
+                    'href' => route('deals.show', ['transaction' => $c->transaction->ulid, 'tab' => 'documentation']),
+                    'at' => $c->checked_at?->toIso8601String(),
                 ]));
         }
 
