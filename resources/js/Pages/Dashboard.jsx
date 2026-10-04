@@ -7,25 +7,41 @@ import { formatDateTime, formatMoney } from '@/lib/format';
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRightIcon } from 'lucide-react';
 
-const crore = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
+const compact = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
 
-/** Big issue sizes read better in crore on a KPI card; the exact amount is in the tooltip. */
+/**
+ * Big issue sizes read better in crore (or lakh crore) on a KPI card, with the unit set smaller so
+ * the figure fits a narrow card; the exact amount is in the tooltip.
+ */
 function moneyHeadline(value) {
     const amount = Number(value);
-    return amount >= 1e7 ? `₹${crore.format(amount / 1e7)} cr` : formatMoney(value);
+    if (amount >= 1e12) return { figure: `₹${compact.format(amount / 1e12)}`, unit: 'lakh cr' };
+    if (amount >= 1e7) return { figure: `₹${compact.format(amount / 1e7)}`, unit: 'cr' };
+    return { figure: formatMoney(value), unit: null };
+}
+
+function KpiValue({ kpi }) {
+    if (!kpi.money) return kpi.value.toLocaleString('en-IN');
+    const { figure, unit } = moneyHeadline(kpi.value);
+    return (
+        <>
+            {figure}
+            {unit && <span className="ml-1 text-sm font-medium text-muted-foreground">{unit}</span>}
+        </>
+    );
 }
 
 function Kpi({ kpi }) {
     return (
-        <Link href={kpi.href} className="group">
+        <Link href={kpi.href} className="group min-w-0">
             <Card className="h-full gap-1 transition-colors group-hover:border-brand-500/50">
-                <CardContent className="flex flex-col gap-1">
+                <CardContent className="flex min-w-0 flex-col gap-1">
                     <span className="text-xs text-muted-foreground">{kpi.label}</span>
                     <span
-                        className="text-2xl font-semibold tracking-tight tabular-nums"
+                        className="text-2xl font-semibold tracking-tight break-words tabular-nums"
                         title={kpi.money ? formatMoney(kpi.value) : undefined}
                     >
-                        {kpi.money ? moneyHeadline(kpi.value) : kpi.value.toLocaleString('en-IN')}
+                        <KpiValue kpi={kpi} />
                     </span>
                 </CardContent>
             </Card>

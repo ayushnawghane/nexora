@@ -3,7 +3,7 @@
 **Phase 1 goal:** the foundation, plus the **Debenture Trustee (DT)** product working end-to-end: lead → transaction → fees and schedule → approval → engagement letter (EL) → deal workspace.
 **Last updated:** 2026-10-03
 
-Related docs: [`HOW-TO-USE.md`](HOW-TO-USE.md) (user guide) · [`legacy-audit.md`](legacy-audit.md) (what the old system does) · [`../DESIGN.md`](../DESIGN.md) (UI) · [`../README.md`](../README.md) (setup and rules)
+Related docs: [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md) (next phase) · [`HOW-TO-USE.md`](HOW-TO-USE.md) (user guide) · [`legacy-audit.md`](legacy-audit.md) (what the old system does) · [`../DESIGN.md`](../DESIGN.md) (UI) · [`../README.md`](../README.md) (setup and rules)
 
 Keep `HOW-TO-USE.md` updated as each milestone ships.
 
@@ -159,6 +159,7 @@ Legend: ✅ done · 🟡 in progress · ⬜ not started
   - Status history from Stack's status log. The **EL number sequence** for each financial year continues after the highest number Stack used (any product, any letter version).
   - Reconciliation of billed periods: Stack ₹16,64,60,790.24 vs Nexora ₹16,62,55,228.24. The difference is the 6 service periods whose fee had no usable data, each listed in the report.
 - Dry run of everything against `beacon_stack` (2026-10-04): 1,924 of 1,945 DT deals (21 have no imported company), 2,393 fee lines, 1,493 billed periods, 3,191 letter versions, 3,404 letter contacts, 1,624 deal billings, 290 open status requests.
+- ✅ Real import run into the **local** `nexora` database (2026-10-04), same counts as the dry run.
 - ⬜ The real import runs at go-live, into the production database, after a final dry run.
 
 ### Out of scope for Phase 1
@@ -176,7 +177,7 @@ Other products, billing and invoicing, ISIN, legal and security modules, outward
 
 All gates were run on 2026-10-04 after M6 was completed. Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen.
 
-**Next step:** go-live preparation: owner sign-off on the import rules and the open items in §6, a copy of Stack's uploads folder for the letter PDFs, then a final dry run and the real import. Phase 2 (documentation, execution, billing) after that.
+**Next step:** go-live preparation: owner sign-off on the import rules and the open items in §6, a copy of Stack's uploads folder for the letter PDFs, then a final dry run and the real import. Phase 2 is planned in [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md) (draft for owner review).
 
 ## 6. Inputs needed
 
