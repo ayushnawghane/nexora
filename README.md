@@ -85,6 +85,7 @@ Scheduled jobs (the daily ISIN payment reminders, `isin:send-reminders`) need th
 ## Environment notes
 
 - **`COMPANY_LOOKUP_DRIVER=fake`** keeps CIN/GST/PAN lookups offline. Switch to the real driver once UAT credentials (`CODIUM_API_*`) are available.
+- **`EINVOICE_DRIVER=fake`** gives tax invoices and credit notes made-up IRNs, so the whole billing flow works offline. Use `none` to issue without IRNs. A real IRIS driver is added once UAT credentials arrive; never point development at the production IRP.
 - **`DEBUGBAR_ENABLED=false`**: Laravel Debugbar sits over the bottom of the screen (including the sidebar user menu). Turn it on only while profiling.
 - **After `npm install` changes React or other core packages**, restart `npm run dev`. A dev server started earlier keeps serving the old pre-bundled packages.
 - **`MAIL_MAILER=log`**: outgoing mail, including approval links, is written to `storage/logs/laravel.log`.

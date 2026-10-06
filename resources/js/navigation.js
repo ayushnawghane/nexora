@@ -6,6 +6,7 @@ import {
     LayoutDashboard,
     Library,
     Percent,
+    ReceiptIndianRupee,
     ShieldAlert,
     ShieldCheck,
     Users,
@@ -50,6 +51,14 @@ export const navigation = [
             },
             { title: 'Deals', route: 'deals.index', permission: 'deals.view', icon: Briefcase },
             { title: 'ISINs', route: 'isins.index', permission: 'deals.view', icon: Landmark },
+            {
+                title: 'Billing',
+                icon: ReceiptIndianRupee,
+                items: [
+                    { title: 'Invoices', route: 'invoices.index', permission: 'billing.view' },
+                    { title: 'Billing queue', route: 'billing.queue', permission: 'billing.view' },
+                ],
+            },
             {
                 title: 'Approvals',
                 route: 'approvals.index',

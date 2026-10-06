@@ -210,6 +210,16 @@ Plan: [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md).
 - ⬜ Owner review; roles; decisions PHASE-2-PLAN §4 #4, #5 and #5a (**8,728 payments Stack never marked paid show as overdue**)
 - Not built from the plan: per-row hand edits beyond move / remove / record (God Mode covers corrections), a preview step for the CSV upload (the file is checked in full and rejected as a whole instead), call / put option history (Stack's `isin_call_details_new`, 58 rows)
 
+### M11: Billing and invoicing 🟡 built, owner review pending (2026-10-06)
+- ✅ Schema: `invoices` (proforma · tax · credit note · reimbursement; numbers unique per kind; who is billed copied on issue; GST split; IRN; `balance_due` kept up to date), `invoice_lines`, `deal_expenses` (OPE with proof), `invoice_receipts` (reversed, never deleted), `invoice_mails`; `fee_schedule_periods.invoice_id` (a period is billed once)
+- ✅ Draft (maker) → issue / send back (checker ≠ maker) → receipts on the proforma → tax invoice with IRN (`EInvoiceGateway`, `fake` driver until IRIS UAT) → credit notes (maker → checker, at the invoice's own rates) → cancel (proforma / reimbursement until money is recorded; tax / credit within 24 h). Numbers from `NumberSequence` per kind and financial year, `BTL/2627/INV001`. PDF (`resources/views/invoices/document.blade.php`, signed QR) and email after commit
+- ✅ Screens: deal **Invoices** tab, invoice page, **Invoices** list (tabs, search, Excel), **Billing queue** (paged by deal), dashboard numbers and queue items; God Mode editors for invoices, lines, receipts and expenses; permissions `billing.view / raise / approve / receipts` and Stack's billing permissions mapped
+- ✅ `RegenerateSchedule` keeps billed periods (only later periods are rebuilt); a billed fee can't be switched off
+- ✅ `legacy:import billing` (part of `all`): DT bills of every kind, cancellations, lines from Stack's fee-type amounts, IRNs, SAC, payments (`payment_update`, one per bill, moved from a tax invoice to its proforma), OPE with files, billed-period links, sequences continued, totals reconciled; re-running changes nothing
+- Local import (2026-10-06): 10,616 invoices, 4,804 receipts (114 empty Stack rows skipped), 193 expenses, 952 fee periods linked. Totals not cancelled match Stack to the paisa: proformas ₹69,32,60,216.56, tax invoices ₹62,69,36,959.89, credit notes ₹3,50,15,007.60, reimbursement bills ₹6,77,60,626.34
+- ⬜ Owner review; roles; decisions PHASE-2-PLAN §4 #6, #7, #8, #6a (**946 of 947 imported proformas with money due are overdue**) and #6b (438 deals have unbilled periods in the queue)
+- Not built from the plan: the IRIS e-invoice driver (needs UAT credentials), TDS certificate uploads per quarter, ageing report, payment links and EA billing (Phase 3)
+
 ### Out of scope for Phase 1
 Other products, billing and invoicing, ISIN, legal and security modules, outward and payouts, the AIF client portal, the approver mobile app, reports and payment links.
 
@@ -223,7 +233,7 @@ Other products, billing and invoicing, ISIN, legal and security modules, outward
 | Pint / PHPStan level 5 | Clean |
 | ESLint / Prettier / build | Clean |
 
-All gates were last run on 2026-10-04 after M10 (run the suite without `--parallel`: the legacy import tests share one legacy test database). Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen; the ISIN tab and ISINs list checked on real imported data.
+All gates were last run on 2026-10-06 after M11 (Pest, PHPStan, Pint, ESLint, Prettier, build). The billing screens were checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes on real imported data: no sideways scroll; on phones the invoice, deal and queue tables fold their secondary columns under the first. Earlier: all gates were run on 2026-10-04 after M10 (run the suite without `--parallel`: the legacy import tests share one legacy test database). Deal screens checked in headless Chrome at 375 / 768 / 1024 / 1440px in both themes: no sideways scroll; the billing sheet and status dialog open fully on screen; the ISIN tab and ISINs list checked on real imported data.
 
 **Next step:** go-live preparation: owner sign-off on the import rules and the open items in §6, a copy of Stack's uploads folder for the letter PDFs, then a final dry run and the real import. Phase 2 is planned in [`PHASE-2-PLAN.md`](PHASE-2-PLAN.md) (draft for owner review).
 
@@ -236,7 +246,7 @@ Items marked **⏳ Pending from project owner** are waiting on the project owner
 | Legacy DB copy | M6 import, fee-test fixtures | ✅ Available locally (`beacon_stack`) |
 | Codium API UAT credentials (the `CODIUM_API_*` values in `.env.example`; legacy names shown there) + a sample response | Real company lookups (M3) | ✅ Received 2026-10-03 and set in the local `.env`. Still on the fake driver: switch with `COMPANY_LOOKUP_DRIVER=codium` once a test lookup is approved (each lookup is a paid call). |
 | Mail settings (UAT SMTP / Microsoft Graph) | Approval and notification emails (M4) | ⏳ Pending from project owner |
-| Beacon's own GSTIN | Home state for CGST+SGST vs IGST (entered in Tax settings) | ⏳ Pending from project owner |
+| Beacon's own GSTIN | Home state for CGST+SGST vs IGST (entered in Tax settings) | ⏳ Pending from project owner (Stack's config has `27AAGCB5444C1ZX`; confirm and enter it in Tax settings) |
 | Confirm GST rate 9% + 9% / 18% on trusteeship fees | Seeded default in Tax settings | ⏳ Pending from project owner (confirm, or give the correct rate) |
 | EL letter wording sign-off | `resources/views/letters/dt-engagement.blade.php` (draft wording in place) | ⏳ Pending from project owner |
 | 2–3 real DT deals with escalation or half-yearly billing (legacy `con_id`s) | More fee-schedule tests (6 annual legacy deals already pass) | ⏳ Pending from project owner |

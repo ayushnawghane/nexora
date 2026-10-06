@@ -75,6 +75,18 @@ return [
         'isin_delete' => ['deals.view', 'deals.isin.manage'],
         'isn_mis_view' => ['deals.view'],
 
+        // Billing (checker only from Stack's "verify"; Stack let anyone with "add" convert to tax)
+        'billing_invoicing_view' => ['deals.view', 'billing.view'],
+        'invoicing_view' => ['deals.view', 'billing.view'],
+        'invoice_overview_view' => ['billing.view'],
+        'billing_invoicing_add' => ['deals.view', 'billing.view', 'billing.raise'],
+        'billing_invoicing_edit' => ['deals.view', 'billing.view', 'billing.raise'],
+        'billing_proforma_edit' => ['deals.view', 'billing.view', 'billing.raise'],
+        'invoicing_add' => ['deals.view', 'billing.view', 'billing.raise'],
+        'invoicing_edit' => ['deals.view', 'billing.view', 'billing.raise'],
+        'invoicing_verify' => ['deals.view', 'billing.view', 'billing.approve'],
+        'payment_update' => ['deals.view', 'billing.view', 'billing.receipts'],
+
         // Companies and masters
         'master' => ['masters.view', 'masters.manage', 'companies.view', 'companies.manage'],
     ],

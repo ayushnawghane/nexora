@@ -8,6 +8,9 @@ use App\Services\CompanyLookup\CachedCompanyLookup;
 use App\Services\CompanyLookup\CodiumCompanyLookup;
 use App\Services\CompanyLookup\CompanyLookup;
 use App\Services\CompanyLookup\FakeCompanyLookup;
+use App\Services\EInvoice\EInvoiceGateway;
+use App\Services\EInvoice\FakeEInvoiceGateway;
+use App\Services\EInvoice\NoEInvoiceGateway;
 use App\Services\Fees\FeeScheduleService;
 use App\Support\Permissions;
 use Illuminate\Database\Eloquent\Model;
@@ -33,6 +36,12 @@ class AppServiceProvider extends ServiceProvider
             };
 
             return new CachedCompanyLookup($driver, (int) $config['cache_hours']);
+        });
+
+        $this->app->singleton(EInvoiceGateway::class, fn () => match (config('billing.einvoice.driver')) {
+            'fake' => new FakeEInvoiceGateway,
+            'none' => new NoEInvoiceGateway,
+            default => throw new \InvalidArgumentException('Unknown EINVOICE_DRIVER ['.config('billing.einvoice.driver').'].'),
         });
     }
 

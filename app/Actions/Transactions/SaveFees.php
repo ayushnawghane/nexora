@@ -5,9 +5,11 @@ namespace App\Actions\Transactions;
 use App\Enums\EscalationType;
 use App\Enums\FeeAmountType;
 use App\Enums\FeeKind;
+use App\Models\FeeSchedulePeriod;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SaveFees
 {
@@ -25,6 +27,11 @@ class SaveFees
                 $fee = $fees[$kind->value];
 
                 if (! $fee['enabled']) {
+                    $billed = FeeSchedulePeriod::query()->whereNotNull('invoice_id')
+                        ->whereHas('feeLine', fn ($q) => $q->where('transaction_id', $transaction->id)->where('kind', $kind))->exists();
+                    if ($billed) {
+                        throw ValidationException::withMessages(["fees.{$kind->value}.enabled" => "The {$kind->label()} has been billed, so it can't be removed."]);
+                    }
                     $transaction->feeLines()->where('kind', $kind)->delete();
 
                     continue;

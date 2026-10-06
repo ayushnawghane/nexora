@@ -52,6 +52,15 @@ return [
                 'deals.isin.manage' => 'ISIN: maintain ISINs, schedules and payments; send reminders',
             ],
         ],
+        'billing' => [
+            'label' => 'Billing',
+            'permissions' => [
+                'billing.view' => 'View invoices, the billing queue and outstanding',
+                'billing.raise' => 'Billing: maker (draft proformas, credit notes, reimbursement bills; record expenses)',
+                'billing.approve' => 'Billing: checker (issue, convert to tax invoice, cancel)',
+                'billing.receipts' => 'Billing: record and reverse receipts and TDS',
+            ],
+        ],
         'companies' => [
             'label' => 'Companies',
             'permissions' => [

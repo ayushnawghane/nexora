@@ -376,6 +376,24 @@ class Transaction extends Model
         return $this->hasMany(DealIsin::class);
     }
 
+    /**
+     * @return HasMany<Invoice, $this>
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    /**
+     * Out-of-pocket expenses, including removed ones.
+     *
+     * @return HasMany<DealExpense, $this>
+     */
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(DealExpense::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

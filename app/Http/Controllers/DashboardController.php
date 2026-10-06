@@ -6,21 +6,26 @@ use App\Enums\ApprovalStatus;
 use App\Enums\ConditionStatus;
 use App\Enums\DealStatus;
 use App\Enums\ExecutionStatus;
+use App\Enums\InvoiceStatus;
 use App\Enums\IsinPaymentStatus;
 use App\Enums\JobSheetStatus;
 use App\Enums\StatusApprovalTeam;
 use App\Enums\StatusRequestState;
 use App\Enums\TransactionStatus;
+use App\Http\Controllers\Billing\BillingQueueController;
 use App\Models\ApprovalRequest;
 use App\Models\DealCondition;
 use App\Models\DealDiligenceItem;
 use App\Models\DealExecution;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealStatusRequest;
+use App\Models\FeeSchedulePeriod;
+use App\Models\Invoice;
 use App\Models\IsinPayment;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\FinancialYear;
+use App\Support\Money;
 use Brick\Math\BigDecimal;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -43,7 +48,7 @@ class DashboardController extends Controller
         $user = $request->user();
 
         return Inertia::render('Dashboard', [
-            'kpis' => $user->can('deals.view') || $user->can('transactions.view') ? $this->kpis($user) : null,
+            'kpis' => $user->can('deals.view') || $user->can('transactions.view') || $user->can('billing.view') ? $this->kpis($user) : null,
             'queue' => $this->queue($user),
         ]);
     }
@@ -68,6 +73,11 @@ class DashboardController extends Controller
                 ->whereHas('isin.transaction', fn (Builder $q) => $q->whereNotIn('deal_status', $this->finalStatuses()))->count();
             $kpis[] = ['key' => 'overdue_payments', 'label' => 'Debenture payments overdue', 'value' => $overdue, 'href' => route('isins.index', ['filter' => ['due' => 'overdue']])];
             $kpis[] = ['key' => 'issue', 'label' => 'Issue size under trusteeship', 'value' => (string) $issueTotal->toScale(2), 'money' => true, 'href' => route('deals.index')];
+        }
+
+        if ($user->can('billing.view')) {
+            $kpis[] = ['key' => 'receivable', 'label' => 'Outstanding on invoices', 'value' => (string) BigDecimal::of((string) (Invoice::query()->due()->sum('balance_due') ?: '0'))->toScale(2), 'money' => true, 'href' => route('invoices.index', ['filter' => ['tab' => 'due']])];
+            $kpis[] = ['key' => 'overdue_invoices', 'label' => 'Invoices overdue', 'value' => Invoice::query()->overdue()->count(), 'href' => route('invoices.index', ['filter' => ['tab' => 'due']])];
         }
 
         if ($user->can('transactions.view')) {
@@ -243,6 +253,47 @@ class DashboardController extends Controller
                     'href' => route('deals.show', ['transaction' => $p->isin->transaction->ulid, 'tab' => 'isin']),
                     'at' => $p->due_on->toIso8601String(),
                 ]));
+        }
+
+        $invoiceItem = fn (Invoice $i, string $kind, string $detail, ?string $at) => [
+            'id' => "invoice-{$kind}-{$i->id}",
+            'kind' => $kind,
+            'title' => $i->transaction->company->name,
+            'detail' => $detail,
+            'href' => route('invoices.show', $i->ulid),
+            'at' => $at,
+        ];
+        $withDeal = ['transaction:id,ulid,company_id', 'transaction.company:id,name'];
+
+        if ($user->can('billing.approve')) {
+            Invoice::query()->where('status', InvoiceStatus::Draft)->whereNull('returned_at')->where('created_by', '!=', $user->id)
+                ->with([...$withDeal, 'creator:id,name'])->oldest('id')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (Invoice $i) => $items->push($invoiceItem($i, 'Invoice to issue', "{$i->kind->label()} · ".Money::format($i->total)." · drafted by {$i->creator->name}", $i->created_at?->toIso8601String())));
+        }
+
+        if ($user->can('billing.raise')) {
+            Invoice::query()->where('status', InvoiceStatus::Draft)->whereNotNull('returned_at')->where('created_by', $user->id)
+                ->with($withDeal)->oldest('returned_at')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (Invoice $i) => $items->push($invoiceItem($i, 'Sent back to you', "{$i->kind->label()} · “{$i->returned_reason}”", $i->returned_at?->toIso8601String())));
+
+            // Deals with a fee period whose bill date has passed and nothing billing it yet.
+            BillingQueueController::due()->whereDate('bill_date', '<=', today())
+                ->with(['feeLine:id,transaction_id,kind', 'feeLine.transaction:id,ulid,company_id', 'feeLine.transaction.company:id,name'])
+                ->orderBy('bill_date')->limit(500)->get()
+                ->unique(fn (FeeSchedulePeriod $p) => $p->feeLine->transaction_id)->take(self::QUEUE_LIMIT)
+                ->each(fn (FeeSchedulePeriod $p) => $items->push([
+                    'id' => "to-bill-{$p->feeLine->transaction_id}",
+                    'kind' => 'Ready to bill',
+                    'title' => $p->feeLine->transaction->company->name,
+                    'detail' => "{$p->feeLine->kind->label()} from {$p->from_date->format('d M Y')}, bill date {$p->bill_date->format('d M Y')}",
+                    'href' => route('deals.show', ['transaction' => $p->feeLine->transaction->ulid, 'tab' => 'invoices']),
+                    'at' => $p->bill_date->toIso8601String(),
+                ]));
+        }
+
+        if ($user->can('billing.receipts')) {
+            Invoice::query()->overdue()->with($withDeal)->oldest('invoice_date')->limit(self::QUEUE_LIMIT)->get()
+                ->each(fn (Invoice $i) => $items->push($invoiceItem($i, 'Invoice overdue', "{$i->number} · ".Money::format($i->balance_due).' outstanding', $i->invoice_date?->toIso8601String())));
         }
 
         $executionLink = fn (DealExecution $e) => route('deals.show', ['transaction' => $e->transaction->ulid, 'tab' => 'execution']);

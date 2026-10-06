@@ -1,6 +1,7 @@
 import { BillingPanel } from '@/Components/deals/billing-panel';
 import { DocumentationPanel } from '@/Components/deals/documentation-panel';
 import { ExecutionPanel } from '@/Components/deals/execution-panel';
+import { InvoicesPanel } from '@/Components/deals/invoices-panel';
 import { IsinPanel } from '@/Components/deals/isin-panel';
 import { SecurityPanel } from '@/Components/deals/security-panel';
 import { JobSheetPanel } from '@/Components/deals/job-sheet-panel';
@@ -24,7 +25,6 @@ const LATER = [
     ['covenants', 'Covenants'],
     ['credit-rating', 'Credit rating'],
     ['outward', 'Outward'],
-    ['invoices', 'Invoices'],
 ];
 
 function Detail({ label, children, mono = false }) {
@@ -177,6 +177,7 @@ export default function DealShow({
     execution,
     security,
     isin,
+    invoices,
     activity,
     can,
 }) {
@@ -216,6 +217,7 @@ export default function DealShow({
                         <TabsTrigger value="execution">Execution</TabsTrigger>
                         <TabsTrigger value="security">Security</TabsTrigger>
                         <TabsTrigger value="isin">ISIN</TabsTrigger>
+                        {can.viewBilling && <TabsTrigger value="invoices">Invoices</TabsTrigger>}
                         <TabsTrigger value="job-sheet">Job sheet</TabsTrigger>
                         <TabsTrigger value="activity">Activity</TabsTrigger>
                         {LATER.map(([value, label]) => (
@@ -250,6 +252,9 @@ export default function DealShow({
                 </TabsContent>
                 <TabsContent value="isin">
                     <IsinPanel dealId={deal.id} isin={isin} can={can} />
+                </TabsContent>
+                <TabsContent value="invoices">
+                    <InvoicesPanel dealId={deal.id} invoices={invoices} can={can} />
                 </TabsContent>
                 <TabsContent value="job-sheet">
                     <JobSheetPanel dealId={deal.id} rows={jobSheet} can={can} />

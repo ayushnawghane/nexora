@@ -10,11 +10,15 @@ use App\GodMode\Editors\DealBillingEditor;
 use App\GodMode\Editors\DealConditionEditor;
 use App\GodMode\Editors\DealDocumentEditor;
 use App\GodMode\Editors\DealExecutionEditor;
+use App\GodMode\Editors\DealExpenseEditor;
 use App\GodMode\Editors\DealIsinEditor;
 use App\GodMode\Editors\DealSecurityEditor;
 use App\GodMode\Editors\DealStatusEditor;
 use App\GodMode\Editors\DiligenceItemEditor;
 use App\GodMode\Editors\FeesEditor;
+use App\GodMode\Editors\InvoiceEditor;
+use App\GodMode\Editors\InvoiceLineEditor;
+use App\GodMode\Editors\InvoiceReceiptEditor;
 use App\GodMode\Editors\IsinPaymentEditor;
 use App\GodMode\Editors\IssueDetailsEditor;
 use App\GodMode\Editors\JobSheetEntryEditor;
@@ -47,6 +51,10 @@ class Editors
         DiligenceItemEditor::class,
         DealIsinEditor::class,
         IsinPaymentEditor::class,
+        InvoiceEditor::class,
+        InvoiceLineEditor::class,
+        InvoiceReceiptEditor::class,
+        DealExpenseEditor::class,
     ];
 
     /** Corrections after which the engagement letter may no longer match the data. */

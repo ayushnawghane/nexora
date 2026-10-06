@@ -263,6 +263,7 @@ function legacySchema(): void
         $t->decimal('no_of_days_in_year', 8, 2)->nullable();
         $t->decimal('base_amount', 18, 2)->nullable();
         $t->decimal('applicable_fees', 18, 2)->nullable();
+        $t->integer('proforma_id')->nullable();
         $flags($t);
     });
     $schema->create('el_versioning', function (Blueprint $t) use ($flags) {
@@ -621,6 +622,69 @@ function legacySchema(): void
     });
     $schedule('mon_paymt_interst_sch_new', ['due' => 'in_due_date', 'paid' => 'in_paid_date', 'status' => 'in_status', 'remark' => 'in_remark', 'basis' => 'intrest_redemp_type', 'amount' => 'intrest_total_amnt', 'fv' => 'interest_face_value', 'qty' => 'interest_qty']);
     $schedule('mon_paymt_prin_sch_new', ['due' => 'due_date', 'paid' => 'paid_date', 'status' => 'status', 'remark' => 'prin_remark', 'basis' => 'redemp_type', 'amount' => 'prin_total_amnt', 'fv' => 'prin_face_value', 'qty' => 'prin_qty']);
+
+    // Billing: Stack's invoice table and what hangs off it (only the columns the import reads).
+    $schema->create('tblpushbillingdata', function (Blueprint $t) {
+        $t->id();
+        $t->integer('con_id')->nullable();
+        foreach (['invoice_type', 'invoice_no', 'proforma_id', 'status', 'cancelled_reason', 'billing_name', 'company_name', 'billing_address', 'address', 'state', 'gst_no', 'other_desc'] as $c) {
+            $t->string($c)->nullable();
+        }
+        foreach (['accep_manually', 'service_manually', 'brk_amnt', 'other_amnt', 'ope_amount', 'sub_total', 'cgst', 'sgst', 'igst', 'grand_total'] as $c) {
+            $t->decimal($c, 18, 2)->nullable();
+        }
+        foreach (['user_id', 'cancelled_by', 'is_gst_apply', 'is_cancelled'] as $c) {
+            $t->integer($c)->nullable();
+        }
+        $t->dateTime('created_date')->nullable();
+        $t->dateTime('cancelled_date')->nullable();
+        $t->date('bill_start_date')->nullable();
+        $t->date('bill_end_date')->nullable();
+        $t->tinyInteger('is_active')->default(1);
+    });
+    $schema->create('tblpushbilling_conid_mapper', function (Blueprint $t) {
+        $t->id();
+        foreach (['con_id', 'tblpushbill_id', 'taxinvoice_id', 'credit_id', 'debit_id'] as $c) {
+            $t->integer($c)->nullable();
+        }
+        $t->tinyInteger('is_active')->default(1);
+    });
+    $schema->create('tblpushbilling_hsn_mapper', function (Blueprint $t) {
+        $t->id();
+        $t->integer('tblpushbill_id');
+        $t->string('hsn', 10)->nullable();
+    });
+    $schema->create('tbl_einvoice_details', function (Blueprint $t) {
+        $t->id();
+        $t->integer('bill_id');
+        $t->text('irn')->nullable();
+        $t->text('ack_no')->nullable();
+        $t->dateTime('ack_date')->nullable();
+        $t->tinyInteger('is_cancelled')->default(0);
+        $t->dateTime('created_date')->nullable();
+        $t->tinyInteger('is_active')->default(1);
+    });
+    $schema->create('payment_update', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->integer('tbl_pushbilling_id');
+        $t->decimal('received_amount', 18, 2)->nullable();
+        $t->decimal('tds_amount', 18, 2)->nullable();
+        $t->date('recieved_amt_date')->nullable();
+        $t->date('tds_date')->nullable();
+        $t->string('utr_no')->nullable();
+        $t->bigInteger('created_by')->nullable();
+        $flags($t);
+    });
+    $schema->create('ope_billing_details', function (Blueprint $t) use ($flags) {
+        $t->id();
+        $t->bigInteger('con_id');
+        $t->bigInteger('bill_id')->nullable();
+        $t->decimal('pocket_amount', 18, 2)->nullable();
+        $t->string('remark')->nullable();
+        $t->integer('upload_id')->nullable();
+        $t->bigInteger('created_by')->nullable();
+        $flags($t);
+    });
 
     $schema->create('pre_post_upload_map', function (Blueprint $t) {
         $t->integer('id');

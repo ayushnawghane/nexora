@@ -22,4 +22,10 @@ final class FinancialYear
 
         return sprintf('%02d-%02d', $start % 100, ($start + 1) % 100);
     }
+
+    /** "2526" for the same year (as used in invoice numbers). */
+    public static function compact(DateTimeInterface $date): string
+    {
+        return str_replace('-', '', self::short($date));
+    }
 }

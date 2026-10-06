@@ -21,16 +21,21 @@ use App\Models\DealCondition;
 use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
+use App\Models\DealExpense;
 use App\Models\DealIsin;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealSecurity;
 use App\Models\EngagementLetter;
 use App\Models\FeeLine;
 use App\Models\GodModeChange;
+use App\Models\Invoice;
+use App\Models\InvoiceLine;
+use App\Models\InvoiceReceipt;
 use App\Models\IsinPayment;
 use App\Models\RetiredElNumber;
 use App\Models\SecurityRegistration;
 use App\Models\Transaction;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -87,7 +92,7 @@ class GodModeController extends Controller
 
     public function transaction(Transaction $transaction): Response
     {
-        $transaction->load(['company:id,ulid,name', 'jobSheetEntries.activity:id,name', 'dealDocuments', 'conditions', 'executions.document', 'securities.securityTypes', 'registrations', 'diligenceItems', 'isins.payments']);
+        $transaction->load(['company:id,ulid,name', 'jobSheetEntries.activity:id,name', 'dealDocuments', 'conditions', 'executions.document', 'securities.securityTypes', 'registrations', 'diligenceItems', 'isins.payments', 'invoices.lines', 'invoices.receipts']);
         $item = fn (string $editor, $record, string $title, ?string $subtitle = null, ?string $id = null) => [
             ...Editors::present(Editors::get($editor), $record, $id ?? (string) $record->getKey()),
             'title' => $title,
@@ -128,6 +133,12 @@ class GodModeController extends Controller
                     ->concat($i->payments
                         ->filter(fn (IsinPayment $p) => $p->status !== IsinPaymentStatus::Due || $p->due_on->isBefore(today()->addDays(90)))
                         ->map(fn (IsinPayment $p) => $item('isin-payment', $p, "{$i->isin} · {$p->kind->label()} {$p->due_on->format('d M Y')}", $p->status->label()))))
+                ->values()];
+            $sections[] = ['title' => 'Invoices', 'items' => $transaction->invoices->sortByDesc('id')
+                ->flatMap(fn (Invoice $inv) => collect([$item('invoice', $inv, $inv->title(), "{$inv->status->label()} · ".Money::format($inv->total))])
+                    ->concat($inv->lines->map(fn (InvoiceLine $l) => $item('invoice-line', $l, ($inv->number ?? 'Draft')." · {$l->description}", Money::format($l->amount))))
+                    ->concat($inv->receipts->map(fn (InvoiceReceipt $r) => $item('invoice-receipt', $r, "{$inv->number} · receipt {$r->received_on->format('d M Y')}", Money::format($r->amount).($r->reversed_at ? ' · reversed' : '')))))
+                ->concat($transaction->expenses()->whereNull('removed_at')->get()->map(fn (DealExpense $e) => $item('deal-expense', $e, "Expense · {$e->description}", Money::format($e->amount))))
                 ->values()];
             $sections[] = ['title' => 'Due diligence', 'items' => $transaction->diligenceItems
                 ->map(fn (DealDiligenceItem $d) => $item('diligence-item', $d, $d->title, "{$d->kind->label()} · {$d->status->label()}"))->values()];

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Legacy\DryRunFinished;
 use App\Legacy\Importer;
+use App\Legacy\Importers\BillingImporter;
 use App\Legacy\Importers\CompaniesImporter;
 use App\Legacy\Importers\DocumentsImporter;
 use App\Legacy\Importers\ExecutionImporter;
@@ -30,7 +31,7 @@ class LegacyImport extends Command
     use ConfirmableTrait;
 
     protected $signature = 'legacy:import
-        {area : organisation, roles, masters, companies, transactions, documents, execution, security, isin, or all (in that order)}
+        {area : organisation, roles, masters, companies, transactions, documents, execution, security, isin, billing, or all (in that order)}
         {--dry-run : Run everything, report, then roll back}
         {--force : Run in production without asking}';
 
@@ -47,6 +48,7 @@ class LegacyImport extends Command
         ExecutionImporter::class,
         SecurityImporter::class,
         IsinImporter::class,
+        BillingImporter::class,
     ];
 
     public function handle(): int

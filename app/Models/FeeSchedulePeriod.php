@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string $amount
  * @property string $financial_year
  * @property bool $prorated
+ * @property int|null $invoice_id
  */
 class FeeSchedulePeriod extends Model
 {
@@ -47,5 +48,15 @@ class FeeSchedulePeriod extends Model
     public function feeLine(): BelongsTo
     {
         return $this->belongsTo(FeeLine::class);
+    }
+
+    /**
+     * The invoice billing this period (set while a live invoice carries it).
+     *
+     * @return BelongsTo<Invoice, $this>
+     */
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
     }
 }

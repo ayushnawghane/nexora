@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Approvals\ApprovalController;
 use App\Http\Controllers\Approvals\EmailApprovalController;
+use App\Http\Controllers\Billing\BillingQueueController;
+use App\Http\Controllers\Billing\InvoiceController;
 use App\Http\Controllers\Companies\CompanyAddressController;
 use App\Http\Controllers\Companies\CompanyContactController;
 use App\Http\Controllers\Companies\CompanyController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\Deals\DealConditionController;
 use App\Http\Controllers\Deals\DealController;
 use App\Http\Controllers\Deals\DealDocumentController;
 use App\Http\Controllers\Deals\DealExecutionController;
+use App\Http\Controllers\Deals\DealInvoiceController;
 use App\Http\Controllers\Deals\DealIsinController;
 use App\Http\Controllers\Deals\DealSecurityController;
 use App\Http\Controllers\Deals\DealStatusController;
@@ -88,6 +91,25 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
     Route::get('isins', [IsinController::class, 'index'])->name('isins.index');
     Route::get('isins/export', [IsinController::class, 'export'])->name('isins.export');
 
+    // Billing: what's ready to bill, every invoice across deals, and what can be done to each.
+    Route::get('billing', [BillingQueueController::class, 'index'])->name('billing.queue');
+    Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('invoices/export', [InvoiceController::class, 'export'])->name('invoices.export');
+    Route::prefix('invoices/{invoice}')->name('invoices.')->controller(InvoiceController::class)->group(function () {
+        Route::get('/', 'show')->name('show');
+        Route::get('pdf', 'pdf')->name('pdf');
+        Route::put('/', 'update')->name('update');
+        Route::delete('/', 'destroy')->name('destroy');
+        Route::post('issue', 'issue')->name('issue');
+        Route::post('send-back', 'sendBack')->name('send-back');
+        Route::post('convert', 'convert')->name('convert');
+        Route::post('cancel', 'cancel')->name('cancel');
+        Route::post('resend', 'resend')->name('resend');
+        Route::post('credit-notes', 'creditNote')->name('credit-notes.store');
+        Route::post('receipts', 'receipt')->name('receipts.store');
+    });
+    Route::post('invoice-receipts/{receipt}/reverse', [InvoiceController::class, 'reverseReceipt'])->name('invoice-receipts.reverse');
+
     // Once the engagement letter is issued, a transaction is worked on as a deal.
     Route::prefix('deals')->name('deals.')->group(function () {
         Route::get('/', [DealController::class, 'index'])->name('index');
@@ -140,6 +162,12 @@ Route::middleware(['auth', 'two-factor', 'password.fresh'])->group(function () {
             Route::put('{transaction}/isin-payments/{payment}/due-date', 'move')->name('isin-payments.move');
             Route::post('{transaction}/isin-payments/{payment}/record', 'record')->name('isin-payments.record');
             Route::delete('{transaction}/isin-payments/{payment}', 'destroy')->name('isin-payments.destroy');
+        });
+        Route::controller(DealInvoiceController::class)->group(function () {
+            Route::post('{transaction}/invoices', 'store')->name('invoices.store');
+            Route::post('{transaction}/expenses', 'storeExpense')->name('expenses.store');
+            Route::post('{transaction}/expenses/{expense}', 'updateExpense')->name('expenses.update');
+            Route::delete('{transaction}/expenses/{expense}', 'destroyExpense')->name('expenses.destroy');
         });
     });
     Route::prefix('deal-status-requests/{statusRequest}')->name('deals.status.')->controller(DealStatusController::class)->group(function () {

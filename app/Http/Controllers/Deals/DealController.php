@@ -24,6 +24,7 @@ use App\Enums\RegistrationStatus;
 use App\Enums\SecurityNature;
 use App\Enums\SignatoryType;
 use App\Enums\StatusApprovalTeam;
+use App\Http\Controllers\Billing\InvoiceController;
 use App\Http\Controllers\Controller;
 use App\Models\AssetType;
 use App\Models\ChargeType;
@@ -36,6 +37,7 @@ use App\Models\DealCondition;
 use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
+use App\Models\DealExpense;
 use App\Models\DealIsin;
 use App\Models\DealJobSheetEntry;
 use App\Models\DealSecurity;
@@ -45,6 +47,8 @@ use App\Models\DealStatusVote;
 use App\Models\DocumentFile;
 use App\Models\EmpanelledAgency;
 use App\Models\EngagementLetter;
+use App\Models\FeeSchedulePeriod;
+use App\Models\Invoice;
 use App\Models\IsinAllotment;
 use App\Models\IsinPayment;
 use App\Models\IssuingAuthority;
@@ -165,6 +169,7 @@ class DealController extends Controller
             'execution' => $this->execution($transaction, $user),
             'security' => $this->security($transaction, $user),
             'isin' => $this->isin($transaction),
+            'invoices' => $user->can('billing.view') ? $this->invoices($transaction) : null,
             'activity' => $this->activity($transaction),
             'can' => [
                 'editBilling' => $user->can('editDeal', $transaction),
@@ -180,6 +185,8 @@ class DealController extends Controller
                 'satisfyRegistration' => $user->can('satisfyRegistration', $transaction),
                 'verifySecurity' => $user->can('verifySecurity', $transaction),
                 'manageIsin' => $user->can('manageIsin', $transaction),
+                'viewBilling' => $user->can('billing.view'),
+                'raiseBilling' => $user->can('billing.raise'),
             ],
         ]);
     }
@@ -698,6 +705,53 @@ class DealController extends Controller
     /**
      * The deal's ISINs with their allotments and schedules, and the form choices.
      *
+     * @return array<string, mixed>
+     */
+    private function invoices(Transaction $deal): array
+    {
+        $invoices = $deal->invoices()->with(['transaction:id,ulid,el_number,company_id', 'transaction.company:id,name', 'creator:id,name'])
+            ->orderByDesc('id')->get()
+            // Drafts first, then newest invoice date first.
+            ->sortBy(fn (Invoice $i) => [$i->invoice_date === null ? 0 : 1, -($i->invoice_date?->getTimestamp() ?? 0), -$i->id])->values();
+        $byId = $invoices->keyBy('id');
+        $queueUntil = today()->addDays((int) config('billing.queue_days'));
+        $billedBy = fn (?int $invoiceId) => $invoiceId && $byId->has($invoiceId)
+            ? ['id' => $byId[$invoiceId]->ulid, 'title' => $byId[$invoiceId]->title(), 'status_label' => $byId[$invoiceId]->status->label()]
+            : null;
+
+        return [
+            'has_billing' => $deal->billing()->exists(),
+            'balance_due' => (string) $invoices->filter(fn (Invoice $i) => $i->isCollectable())
+                ->reduce(fn (BigDecimal $sum, Invoice $i) => $sum->plus($i->balance_due), BigDecimal::zero()->toScale(2)),
+            'overdue' => $invoices->filter(fn (Invoice $i) => $i->isCollectable() && $i->isOverdue())->count(),
+            'invoices' => $invoices->map(fn (Invoice $i) => InvoiceController::row($i))->values(),
+            'periods' => FeeSchedulePeriod::query()->whereHas('feeLine', fn ($q) => $q->where('transaction_id', $deal->id))
+                ->with('feeLine:id,kind')->orderBy('from_date')->orderBy('id')->get()
+                ->map(fn (FeeSchedulePeriod $p) => [
+                    'id' => $p->id,
+                    'fee' => $p->feeLine->kind->label(),
+                    'from' => $p->from_date->toDateString(),
+                    'to' => $p->to_date->toDateString(),
+                    'bill_date' => $p->bill_date->toDateString(),
+                    'amount' => $p->amount,
+                    'invoice' => $billedBy($p->invoice_id),
+                    'billable' => $p->invoice_id === null,
+                    'due' => $p->invoice_id === null && ! $p->bill_date->isAfter($queueUntil),
+                ])->values(),
+            'expenses' => $deal->expenses()->whereNull('removed_at')->with(['files', 'creator:id,name'])->orderByDesc('incurred_on')->orderByDesc('id')->get()
+                ->map(fn (DealExpense $e) => [
+                    'id' => $e->ulid,
+                    'incurred_on' => $e->incurred_on?->toDateString(),
+                    'description' => $e->description,
+                    'amount' => $e->amount,
+                    'recorded_by' => $e->creator->name,
+                    'invoice' => $billedBy($e->invoice_id),
+                    'files' => $e->files->map(fn (DocumentFile $f) => ['id' => $f->ulid, 'name' => $f->original_name, 'size' => $f->size, 'available' => $f->isAvailable()])->values(),
+                ])->values(),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function isin(Transaction $deal): array

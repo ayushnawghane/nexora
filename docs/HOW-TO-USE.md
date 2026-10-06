@@ -364,6 +364,32 @@ The debentures issued under the deal and their interest and principal payments. 
 ### ISINs list
 **ISINs** in the sidebar lists every ISIN across deals with its next due date and how many payments are overdue, ISINs with something due first. Search by ISIN, series, company or EL number; filter to *Overdue* or *Due in the next 30 days*; **Excel** downloads the list as filtered.
 
+### Invoices
+The deal's billing (needs *View invoices*). It shows what's **outstanding** on the deal, how many invoices are **overdue**, and three lists:
+- **Invoices:** every proforma, tax invoice, credit note and reimbursement bill, newest first. Click one to open it.
+- **Fee schedule:** each fee period, and the invoice that billed it. A period is billed once. *Ready to bill* means its bill date has passed or is within 30 days.
+- **Out-of-pocket expenses** (OPE): courier, stamp duty, travel… that Beacon paid for the deal, with proof. They are billed back without GST.
+
+With *Billing: maker*:
+- **Draft proforma:** tick the fee periods (those ready to bill are ticked for you), any expenses, and add other fees (description and amount) and notes. You see the amount before GST; GST is added when it's issued. Set who the deal is billed to (Contacts & billing) first.
+- **Reimbursement bill:** bills unbilled expenses on their own, without GST (Stack called these debit notes; they keep the DN number).
+- **Expense:** record one with its date, amount and proof. You can change or remove it until an invoice bills it.
+
+### Invoice page and what happens to an invoice
+1. **Draft.** Its maker can **Change** it or **Discard** it (what it billed is free to bill again). Nothing has a number yet. **Preview PDF** shows how it will look.
+2. **Issue** (*Billing: checker*, someone other than the maker): the invoice gets its number (e.g. `BTL/2627/INV001`) and today's date, GST is worked out at today's rate (CGST + SGST if the place of supply is Beacon's home state, IGST otherwise), the PDF is made and it's emailed to the deal's billing contacts. Or **Send back** with a reason: it returns to the maker as a draft. **Issued invoices never change.**
+3. **Receipt** (*Billing: record receipts*): money received against the **proforma**, with the TDS the client deducted, the date and UTR. Amount + TDS can't be more than is outstanding. A wrong receipt is **Reversed** with a reason (it stays on record).
+4. **Tax invoice** (*Billing: checker*): issues the tax invoice for a proforma, usually once paid: same lines and client, GST at today's rate, its own number and, if the client has a GSTIN, an **IRN** from the GST e-invoice portal (shown with the QR code on the PDF). If the portal refuses it, nothing is issued and no number is used. Payments stay recorded on the proforma.
+5. **Credit note** (maker drafts, checker issues): reduces a tax invoice line by line (never more than is left of a line), with the reason. GST is reversed at the tax invoice's own rates, and the proforma's outstanding amount drops.
+6. **Cancel** (*Billing: checker*, with a reason): a proforma or reimbursement bill, as long as no money is recorded on it (what it billed is free again); a tax invoice or credit note only **within 24 hours** of issue (GST rule), and not while it has credit notes. Later, raise a credit note instead. The client is emailed that it was cancelled.
+
+**Email** sends any issued invoice again. **History** lists every step and email. Something is **overdue** 30 days after its date while money is still due.
+
+### Invoices list and billing queue
+**Billing → Invoices** lists every invoice across deals, by tab: *Due* (money still due, overdue first to spot), *Drafts* (waiting to be issued), *Proforma*, *Tax invoices*, *Credit notes*, *Reimbursement*, *Cancelled*. Search by number, client, GSTIN or EL number; **Excel** downloads the tab as filtered, with the GST split and what's outstanding.
+
+**Billing → Billing queue** lists, deal by deal, the fee periods not yet billed whose bill date has passed or falls in the next 30 days, on open deals, 20 deals a page, the longest-waiting first. **Draft proforma** on a deal drafts one with those periods.
+
 ### Job sheet
 The checklist of activities for the deal (from *Masters → Job sheet activities*).
 - The **maker** (*Job sheet: maker*) clicks **Record**, enters the date the item was received and a comment, and sends it for checking.
@@ -379,7 +405,8 @@ Everything that happened on the deal, newest first: status changes, billing chan
 
 **Dashboard** is the first page after sign-in.
 - **Headline numbers** (if you can see deals or transactions): open deals, live deals, deals opened this financial year, debenture payments overdue, issue size under trusteeship, drafts and transactions pending approval. Click a number to open the matching list.
-- **Waiting on you:** transactions to approve, deal status changes waiting for your team, job sheet entries, CP/CS items, executed copies and due diligence items to check, your work that was sent back, documents you sign for Beacon, (for custody) deals ready for pickup, and (for ISIN) overdue debenture payments. Oldest first; click one to go straight to it.
+- **Waiting on you:** transactions to approve, deal status changes waiting for your team, job sheet entries, CP/CS items, executed copies and due diligence items to check, your work that was sent back, documents you sign for Beacon, (for custody) deals ready for pickup, (for ISIN) overdue debenture payments, and for billing: invoices to issue, drafts sent back to you, deals ready to bill and overdue invoices. Oldest first; click one to go straight to it.
+- Billing users also see **Outstanding on invoices** and **Invoices overdue**.
 
 ---
 
@@ -387,7 +414,7 @@ Everything that happened on the deal, newest first: status changes, billing chan
 
 **Administration → God Mode** (super-admins only). Corrects any business record when the normal screens can't, for example a deal that's already active or a letter that went out with a mistake. If you entered your 2FA code more than 15 minutes ago, you're asked for a fresh one first.
 
-- **Find the record:** search by company name, CIN, PAN, GSTIN, EL number (including old, retired ones) or deal code. A company page lists its GSTINs, addresses, contacts and transactions; a deal page lists its basics, letter contacts, issue details, fees, billing, status, job sheet, legal documents, CP/CS items and executions. For documents you can correct the name; for CP/CS items the name, issuing authority, due date and comments; for executions the place, dates and comments; for securities every detail of the security form; for registrations the reference, amount and pledge details; for due diligence items the title, agency, UDIN and comments (statuses, filings and files stay as they happened); for ISINs every detail of the ISIN form; for ISIN payments the due date, outcome, date paid and amounts, even once recorded (the page lists payments already settled or due within 90 days).
+- **Find the record:** search by company name, CIN, PAN, GSTIN, EL number (including old, retired ones) or deal code. A company page lists its GSTINs, addresses, contacts and transactions; a deal page lists its basics, letter contacts, issue details, fees, billing, status, job sheet, legal documents, CP/CS items and executions. For documents you can correct the name; for CP/CS items the name, issuing authority, due date and comments; for executions the place, dates and comments; for securities every detail of the security form; for registrations the reference, amount and pledge details; for due diligence items the title, agency, UDIN and comments (statuses, filings and files stay as they happened); for ISINs every detail of the ISIN form; for ISIN payments the due date, outcome, date paid and amounts, even once recorded (the page lists payments already settled or due within 90 days); for invoices the number, date, who is billed, SAC, IRN and notes (the PDF is made again); for invoice lines the description, period and amount (the invoice's totals are worked out again at its own GST rates); for receipts the date, amounts and UTR; and for expenses the date and description (a billed expense's amount is corrected on its invoice line).
 - **Correct it:** click **Correct**, change the values and give a **reason**. The values are checked exactly as on the normal screen, so God Mode can't save anything the regular form would refuse. If someone else changed the record after you opened the page, reload and try again.
 - **Undo:** each correction in the **Change history** has an **Undo** button. It puts the old values back (checked against today's rules) and is refused if the record has changed since. The undo is logged too. Some changes can't be undone this way (a forced status change, the first fees on a deal); make a new correction instead.
 - **Follow-ups:** correcting the issue or fees rebuilds the fee schedule. Check it on the normal view, then click **Verify schedule**. If data printed in the letter changed after its latest version, you're told the letter may be out of date.
@@ -413,6 +440,7 @@ At go-live, users, roles, masters, companies, Debenture Trustee deals and their 
 - **Execution:** each document's execution comes over with its schedule, signatory, executed copy and verification. Where Stack had several execution rows for one document, the verified one (or the latest) is kept. Stack's "Client" signatory and POA holders who only appear in executions are listed under *Masters → POA holders* (the latter inactive).
 - **Security:** securities come from Stack's per-document security details (Stack's ~2,400 empty placeholder rows are skipped), with ROC, CERSAI and pledge registrations, their filings and documents, and the due diligence items with their files.
 - **ISINs:** each deal's ISINs, allotments and interest / principal schedules come over with what was paid and the proof files. Stack's test entries ("test 29 april" …) are left out; an ISIN or due date Stack listed twice is merged (a settled entry wins). Perpetual ISINs, which Stack gave a maturity of 30 Sep 9999, have a blank maturity, and their dates after 2100 are left out. Many old payments were never marked paid in Stack, so they show as **overdue**; settle them through God Mode once confirmed.
+- **Invoices:** Stack's proformas, tax invoices, credit notes and debit notes (as reimbursement bills) come over with their numbers, dates, amounts exactly as billed, IRNs and cancellations, and each deal's out-of-pocket expenses. Stack recorded payments as one running total per bill; each becomes one receipt on the proforma. Stack didn't record many old payments, so many old proformas show as **overdue**; settle them through God Mode once confirmed. A number Stack used twice for the same kind is imported once as is and once with `-{Stack id}` added.
 - **Placeholders:** a user email like `user-123@legacy.invalid` means Stack had no usable email for that person. Ask an administrator to correct it.
 
 ---

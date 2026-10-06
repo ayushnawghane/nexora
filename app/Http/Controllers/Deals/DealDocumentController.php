@@ -14,6 +14,7 @@ use App\Models\DealCondition;
 use App\Models\DealDiligenceItem;
 use App\Models\DealDocument;
 use App\Models\DealExecution;
+use App\Models\DealExpense;
 use App\Models\DealIsin;
 use App\Models\DocumentFile;
 use App\Models\IsinAllotment;
@@ -64,6 +65,8 @@ class DealDocumentController extends Controller
     public function removeFile(Request $request, Transaction $transaction, DocumentFile $file, RemoveDocumentFile $remove): RedirectResponse
     {
         // Executed copies belong to the execution team; everything else to the document makers.
+        // An expense's proof goes with the expense (removing the expense), never on its own.
+        abort_if($file->attachable_type === DealExpense::class, 403);
         $this->authorize(match ($file->attachable_type) {
             DealExecution::class => 'manageExecution',
             DealDiligenceItem::class => 'manageSecurity',
@@ -95,6 +98,7 @@ class DealDocumentController extends Controller
             DealDocument::class => DealDocument::withTrashed()->whereKey($file->attachable_id)->value('transaction_id'),
             DealCondition::class => DealCondition::query()->whereKey($file->attachable_id)->value('transaction_id'),
             DealExecution::class => DealExecution::query()->whereKey($file->attachable_id)->value('transaction_id'),
+            DealExpense::class => DealExpense::query()->whereKey($file->attachable_id)->value('transaction_id'),
             DealDiligenceItem::class => DealDiligenceItem::query()->whereKey($file->attachable_id)->value('transaction_id'),
             IsinAllotment::class => DealIsin::query()->whereKey(IsinAllotment::query()->whereKey($file->attachable_id)->value('deal_isin_id'))->value('transaction_id'),
             IsinPayment::class => DealIsin::query()->whereKey(IsinPayment::query()->whereKey($file->attachable_id)->value('deal_isin_id'))->value('transaction_id'),
